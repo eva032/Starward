@@ -1,0 +1,52 @@
+{
+  "as_of": "2026-10-17",
+  "note": "Synthetic plan catalog for demos. Satellite inclusion flags are illustrative.",
+  "plans": {
+    "tmobile_beyond": {
+      "name": "Experience Beyond",
+      "carrier": "T-Mobile",
+      "monthly_cost": 100,
+      "includes_tsatellite": true,
+      "addon_eligible": true
+    },
+    "tmobile_go5g": {
+      "name": "Go5G Plus",
+      "carrier": "T-Mobile",
+      "monthly_cost": 85,
+      "includes_tsatellite": false,
+      "addon_eligible": true
+    },
+    "verizon_unlimited_plus": {
+      "name": "Unlimited Plus",
+      "carrier": "Verizon",
+      "monthly_cost": 90,
+      "includes_tsatellite": false,
+      "addon_eligible": true
+    },
+    "att_unlimited_starter": {
+      "name": "Unlimited Starter",
+      "carrier": "AT&T",
+      "monthly_cost": 65,
+      "includes_tsatellite": false,
+      "addon_eligible": true
+    },
+    "att_unlimited_extra": {
+      "name": "Unlimited Extra",
+      "carrier": "AT&T",
+      "monthly_cost": 75,
+      "includes_tsatellite": false,
+      "addon_eligible": true
+    }
+  },
+  "addons": {
+    "tsatellite": {
+      "id": "tsatellite",
+      "name": "T-Satellite",
+      "service": "starlink",
+      "cost_usd": 10,
+      "billing": "monthly",
+      "cancel_anytime": true,
+      "source_url": "https://www.t-mobile.com/coverage/satellite-phone-service"
+    }
+  }
+}

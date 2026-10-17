@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Starward · {{ trail.name }} · Household</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f4f5f7; --card: #fff; --ink: #18212b; --muted: #5d6874; --line: #e3e6ea;
+      --navy: #142038; --accent: #3b5bdb;
+      --green: #1f9d55; --green-bg: #e8f6ee; --yellow: #e0a800; --yellow-bg: #fff7dd;
+      --red: #d64545; --gray: #6b7480;
+      --radius: 12px; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: var(--accent); }
+
+    .top { background: var(--navy); color: #fff; padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .brand { font-weight: 800; font-size: 1.2rem; }
+    .brand span { color: #ffd166; }
+    .trip { color: #b9c3d6; font-size: .9rem; }
+    .modes { margin-left: auto; display: inline-flex; background: rgba(255,255,255,.1); border-radius: 8px; padding: 3px; }
+    .modes a { color: #c5d0e4; text-decoration: none; font-weight: 600; font-size: .85rem; padding: 6px 12px; border-radius: 6px; }
+    .modes a.on { background: #fff; color: var(--navy); }
+
+    .grid { max-width: 1240px; margin: 0 auto; padding: 20px 24px 40px; display: grid; gap: 20px;
+            grid-template-columns: minmax(320px, 420px) 1fr;
+            grid-template-areas: "setup map" "answer map" "people map" "more map"; }
+    .setup { grid-area: setup; } .answer { grid-area: answer; } .people { grid-area: people; } .more { grid-area: more; }
+    .mapcol { grid-area: map; position: sticky; top: 16px; align-self: start; }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; grid-template-areas: "setup" "answer" "map" "people" "more"; padding: 16px; }
+      .mapcol { position: static; }
+    }
+
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+    .eyebrow { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+    select, input[type=text], input[type=number] {
+      width: 100%; font: inherit; padding: 8px 10px; border: 1px solid #cfd5dc; border-radius: 8px; background: #fff; color: var(--ink);
+    }
+    .meta { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+    .fine { font-size: .78rem; color: var(--muted); margin: 12px 0 0; }
+    .notice { background: #e8eefc; border: 1px solid #b7c6f3; padding: 10px 12px; border-radius: 8px; font-size: .88rem; margin: 0 0 12px; }
+
+    .source-toggle { display: inline-flex; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px; margin-bottom: 14px; }
+    .source-toggle a { text-decoration: none; color: var(--muted); font-weight: 650; font-size: .85rem; padding: 6px 12px; border-radius: 6px; }
+    .source-toggle a.on { background: var(--navy); color: #fff; }
+
+    .traveler {
+      border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; background: #fafbfc;
+    }
+    .traveler-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .traveler-head strong { font-size: .92rem; }
+    .fields { display: grid; gap: 8px; }
+    .fields.two { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 520px) { .fields.two { grid-template-columns: 1fr; } }
+    label.field { display: grid; gap: 4px; font-size: .78rem; font-weight: 650; color: var(--muted); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    button, .btn {
+      font: inherit; font-weight: 650; padding: 9px 14px; border-radius: 8px; border: 0;
+      background: var(--navy); color: #fff; cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    button.secondary, .btn.secondary { background: #fff; color: var(--navy); border: 1px solid #cfd5dc; }
+    button.linkish { background: none; color: var(--accent); padding: 0; font-weight: 600; font-size: .85rem; border: 0; cursor: pointer; }
+
+    .verdict { border-radius: 10px; padding: 16px; border-left: 4px solid var(--green); background: var(--green-bg); }
+    .verdict.needs { border-left-color: var(--yellow); background: var(--yellow-bg); }
+    .verdict h1 { font-size: 1.15rem; font-weight: 750; margin: 0 0 8px; line-height: 1.3; }
+    .verdict .do { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; margin-top: 10px; }
+    .verdict .why { margin: 8px 0 0; font-size: .92rem; color: #36404b; }
+    .save { margin-top: 10px; font-size: .88rem; color: var(--muted); }
+    .save b { color: var(--ink); }
+
+    .plist { list-style: none; margin: 0; padding: 0; }
+    .plist li { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .plist li:last-child { border-bottom: 0; }
+    .plist a { text-decoration: none; color: inherit; font-weight: 650; }
+    .plist a:hover { color: var(--accent); }
+    .plist .sub { font-size: .82rem; color: var(--muted); font-weight: 400; }
+    .plist .cov { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--muted); }
+    .plist li.on { background: #f0f4ff; margin: 0 -10px; padding-left: 10px; padding-right: 10px; border-radius: 8px; }
+
+    details.morebox { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 8px; }
+    summary { cursor: pointer; font-weight: 650; font-size: .92rem; color: var(--muted); }
+    .extra { margin-top: 10px; }
+    .extra .row { display: flex; justify-content: space-between; gap: 10px; font-weight: 650; }
+    .chart-box { margin-top: 10px; }
+
+    .mapcard { padding: 0; overflow: hidden; position: relative; }
+    .map { display: block; width: 100%; height: min(72vh, 680px); border: 0; }
+    @media (max-width: 960px) { .map { height: 380px; } }
+    .maptools { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 2; }
+    .seg { display: inline-flex; background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 999px; padding: 3px; box-shadow: var(--shadow); font-size: .82rem; }
+    .seg a { text-decoration: none; color: var(--muted); padding: 4px 11px; border-radius: 999px; font-weight: 600; }
+    .seg a.on { background: var(--navy); color: #fff; }
+    .focus-note { background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: .78rem; color: var(--muted); box-shadow: var(--shadow); }
+    .legend { position: absolute; right: 12px; bottom: 28px; z-index: 2; background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .78rem; box-shadow: var(--shadow); }
+    .legend div { display: flex; align-items: center; gap: 6px; }
+    .sw { width: 16px; height: 5px; border-radius: 3px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span>✦</span> Starward</div>
+    <div class="trip">{{ trail.name }}</div>
+    <nav class="modes" aria-label="Planning mode">
+      <a href="/">One phone</a>
+      <a href="/household?mode={{ mode }}{% if mode == 'demo' %}&amp;id={{ household_id }}{% endif %}" class="on">Whole household</a>
+    </nav>
+  </header>
+
+  <main class="grid">
+    <section class="setup card">
+      <p class="eyebrow">1. Your group</p>
+      <div class="source-toggle" aria-label="Data source">
+        <a href="/household?mode=custom" class="{{ 'on' if mode == 'custom' }}">My group</a>
+        <a href="/household?mode=demo&amp;id={{ household_id if mode == 'demo' else 'chen_family' }}" class="{{ 'on' if mode == 'demo' }}">Demo family</a>
+      </div>
+
+      {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+
+      {% if mode == 'demo' %}
+        <form method="get" action="/household">
+          <input type="hidden" name="mode" value="demo">
+          <label class="field">Pick a demo household
+            <select name="id" onchange="this.form.submit()" aria-label="Demo household">
+              {% for hid, h in households.items() %}
+                <option value="{{ hid }}" {% if hid == household_id %}selected{% endif %}>{{ h.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <div class="fields two" style="margin-top:10px">
+            <label class="field">Trip date
+              <input type="date" name="trip_date" value="{{ hh.trip_date or '' }}" onchange="this.form.submit()">
+            </label>
+            <label class="field">Start time
+              <input type="time" name="start_time" value="{{ start_time_value }}" onchange="this.form.submit()">
+            </label>
+          </div>
+        </form>
+        <p class="meta">{{ hh.summary }} Demo data only—switch to <a href="/household?mode=custom">My group</a> for your phones.</p>
+      {% else %}
+        <form method="post" action="/household" id="custom-form">
+          <input type="hidden" name="mode" value="custom">
+          <div class="fields two" style="margin-bottom:10px">
+            <label class="field">Trip date
+              <input type="date" name="trip_date" value="{{ hh.trip_date or '' }}">
+            </label>
+            <label class="field">Start time
+              <input type="time" name="start_time" value="{{ start_time_value }}">
+            </label>
+          </div>
+          <label class="field">Add-on month label <span style="font-weight:500">(optional — auto from date)</span>
+            <input type="text" name="trip_month" value="{{ hh.trip_month or '' }}" placeholder="e.g. June">
+          </label>
+
+          {% for line in hh.lines %}
+            <div class="traveler">
+              <div class="traveler-head">
+                <strong>Traveler {{ loop.index }}</strong>
+                {% if hh.lines|length > 1 %}
+                  <button class="linkish" type="submit" name="action" value="remove" formaction="/household"
+                          onclick="this.form.remove_index.value='{{ loop.index0 }}'">Remove</button>
+                {% endif %}
+              </div>
+              <div class="fields">
+                <label class="field">Name
+                  <input type="text" name="display_name" value="{{ line.display_name }}" required>
+                </label>
+                <div class="fields two">
+                  <label class="field">Phone
+                    <select name="phone">
+                      {% for phone in phone_choices %}
+                        <option value="{{ phone }}" {% if phone == line.phone %}selected{% endif %}>{{ phone }}</option>
+                      {% endfor %}
+                    </select>
+                  </label>
+                  <label class="field">Carrier
+                    <select name="carrier">
+                      {% for c in carrier_choices %}
+                        <option value="{{ c }}" {% if c == line.carrier %}selected{% endif %}>{{ c }}</option>
+                      {% endfor %}
+                    </select>
+                  </label>
+                </div>
+                <label class="field">Plan name
+                  <input type="text" name="plan" value="{{ line.plan or 'My plan' }}" placeholder="e.g. Experience Beyond">
+                </label>
+                <label class="field">Satellite texting today
+                  <select name="satellite">
+                    {% for value, label in satellite_choices %}
+                      <option value="{{ value }}" {% if sat_by_line[line.id] == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <div class="fields two">
+                  <label class="field">Months left on phone financing (optional)
+                    <input type="number" name="financing_months_left" min="0" max="36" value="{{ line.financing_months_left or 0 }}">
+                  </label>
+                  <label class="field">Balance left $ (optional)
+                    <input type="number" name="financing_balance_usd" min="0" step="1" value="{{ line.financing_balance_usd or 0 }}">
+                  </label>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+          <input type="hidden" name="remove_index" value="">
+
+          <div class="actions">
+            <button type="submit" name="action" value="save">Update recommendation</button>
+            {% if hh.lines|length < max_travelers %}
+              <button type="submit" name="action" value="add" class="secondary">Add traveler</button>
+            {% endif %}
+          </div>
+          <p class="meta">Saved in this browser session only. Nothing is sent to a carrier.</p>
+        </form>
+      {% endif %}
+    </section>
+
+    <section class="answer card">
+      <p class="eyebrow">2. Honest answer</p>
+      <div class="verdict {% if rec.outcome != 'covered' %}needs{% endif %}">
+        <h1>{{ rec.headline }}</h1>
+        <p class="meta" style="margin-top:0">
+          {% if rec.trip_date %}{{ rec.trip_date }} · {% endif %}
+          start {{ rec.start_time or coverage.start_time }}
+          {% if rec.trip_month %} · {{ rec.trip_month }}{% endif %}
+        </p>
+        {% if primary %}
+          <div class="do">
+            <span>{{ primary.action }}</span>
+            <span>{{ primary.cost }}</span>
+          </div>
+          <p class="why">{{ primary.reason }}</p>
+        {% endif %}
+        <p class="save">
+          Our setup <b>${{ rec.savings.our_cost_usd }}</b>
+          · typical upsell <b>${{ rec.savings.naive_upsell_usd }}</b>
+          · you save <b>${{ rec.savings.savings_usd }}</b>
+        </p>
+      </div>
+      <p class="fine">
+        Check-in times follow your start time.
+        {% if rec.trip_date %}Trip date is set for when real satellite windows land (Track A).{% endif %}
+        Prices as of {{ rec.as_of }} · <a href="{{ rec.source_url }}" target="_blank" rel="noopener">source</a>.
+      </p>
+    </section>
+
+    <section class="mapcol">
+      <div class="card mapcard">
+        <iframe class="map" title="Coverage map for {{ focus_line.display_name }}" srcdoc="{{ map_doc }}"></iframe>
+        <div class="maptools">
+          <div class="focus-note">Map: <b>{{ focus_line.display_name }}</b></div>
+          {% if can_preview %}
+            <nav class="seg" aria-label="Map view">
+              <a href="/household?mode={{ mode }}{% if mode == 'demo' %}&amp;id={{ household_id }}{% endif %}&amp;traveler={{ focus_id }}" class="{{ 'on' if view == 'current' }}">Now</a>
+              <a href="/household?mode={{ mode }}{% if mode == 'demo' %}&amp;id={{ household_id }}{% endif %}&amp;traveler={{ focus_id }}&amp;view=tsat" class="{{ 'on' if view == 'tsat' }}">+ T-Satellite</a>
+            </nav>
+          {% endif %}
+        </div>
+        <div class="legend">
+          <div><span class="sw" style="background:var(--green)"></span>Good chance</div>
+          <div><span class="sw" style="background:var(--yellow)"></span>Some chance</div>
+          <div><span class="sw" style="background:var(--red)"></span>Unlikely</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="people card">
+      <p class="eyebrow">3. Tap someone for their map</p>
+      <ul class="plist">
+        {% for p in rec.per_line %}
+          <li class="{{ 'on' if p.line_id == focus_id }}">
+            <div>
+              <a href="/household?mode={{ mode }}{% if mode == 'demo' %}&amp;id={{ household_id }}{% endif %}&amp;traveler={{ p.line_id }}">{{ p.display_name }}</a>
+              <div class="sub">{{ p.phone }} · {{ p.carrier }}</div>
+            </div>
+            <div class="cov">{{ p.covered }}/{{ p.total }}</div>
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="meta">Check-ins their current phone can likely reach (estimate).</p>
+    </section>
+
+    <section class="more card">
+      <p class="eyebrow">4. Details</p>
+      {% if extras %}
+        <details class="morebox">
+          <summary>Everyone else ({{ extras|length }})</summary>
+          {% for r in extras %}
+            <div class="extra">
+              <div class="row"><span>{{ r.action }}</span><span>{{ r.cost }}</span></div>
+              <p class="meta">{{ r.reason }}</p>
+            </div>
+          {% endfor %}
+        </details>
+      {% endif %}
+
+      <details class="morebox">
+        <summary>Cart {% if rec.cart.empty %}(empty){% else %}(${{ rec.cart.total_usd }}){% endif %}</summary>
+        {% if rec.cart.celebration %}<p class="meta" style="margin-top:10px">{{ rec.cart.celebration }}</p>{% endif %}
+        {% if rec.cart.line_items %}
+          <ul style="margin:10px 0 0; padding-left:18px">
+            {% for item in rec.cart.line_items %}
+              <li style="margin:8px 0">
+                <strong>{{ item.title }}</strong> — {{ item.cost }}
+                {% if item.type == 'addon' %}<div class="meta">On for {{ item.start_month }}; cancel after the trip.</div>{% endif %}
+                {% if item.type == 'reminder' %}<div class="meta">Reminder only.</div>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </details>
+
+      {% if rec.timing %}
+        <details class="morebox">
+          <summary>Why not upgrade? (now vs later)</summary>
+          {% for t in rec.timing %}
+            <div class="extra">
+              <div class="row"><span>{{ t.display_name }} → {{ t.upgrade_model }}</span><span>{{ t.verdict }}</span></div>
+              <p class="meta">Now ~${{ t.cost_now_usd }} · wait {{ t.months_left }} mo ~${{ t.cost_later_usd }}</p>
+              <div class="chart-box"><canvas id="chart-{{ t.line_id }}" height="160"></canvas></div>
+            </div>
+          {% endfor %}
+        </details>
+        <script>
+          {% for t in rec.timing %}
+          (() => {
+            const ctx = document.getElementById('chart-{{ t.line_id }}');
+            if (!ctx || typeof Chart === 'undefined') return;
+            new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: {{ t.chart.labels|tojson }},
+                datasets: [
+                  { label: 'Upgrade along the way', data: {{ t.chart.upgrade_now|tojson }}, borderColor: '#142038', tension: 0.2 },
+                  { label: 'Wait until payoff', data: {{ t.chart.upgrade_later|tojson }}, borderColor: '#1f9d55', borderDash: [6,4], tension: 0.2 },
+                ],
+              },
+              options: {
+                plugins: { legend: { labels: { boxWidth: 10, font: { size: 11 } } } },
+                scales: { y: { ticks: { callback: v => '$' + v } } },
+              },
+            });
+          })();
+          {% endfor %}
+        </script>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

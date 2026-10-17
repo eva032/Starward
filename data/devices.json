@@ -1,0 +1,106 @@
+{
+  "as_of": "2026-10-17",
+  "note": "Synthetic device catalog. Compatibility mirrors public T-Satellite eligibility; prices are mock retail/installment figures.",
+  "devices": {
+    "iphone_16": {
+      "model": "iPhone 16",
+      "brand": "Apple",
+      "retail_usd": 829,
+      "installment_months": 24,
+      "installment_monthly_usd": 34.54,
+      "esim_slots": 2,
+      "satellite_services": ["globalstar", "starlink"],
+      "upgrade_phone": null
+    },
+    "iphone_15": {
+      "model": "iPhone 15",
+      "brand": "Apple",
+      "retail_usd": 729,
+      "installment_months": 24,
+      "installment_monthly_usd": 30.38,
+      "esim_slots": 2,
+      "satellite_services": ["globalstar", "starlink"],
+      "upgrade_phone": "iphone_16"
+    },
+    "iphone_13": {
+      "model": "iPhone 13",
+      "brand": "Apple",
+      "retail_usd": 499,
+      "installment_months": 24,
+      "installment_monthly_usd": 20.79,
+      "esim_slots": 2,
+      "satellite_services": ["starlink"],
+      "upgrade_phone": "iphone_16"
+    },
+    "iphone_12": {
+      "model": "iPhone 12",
+      "brand": "Apple",
+      "retail_usd": 0,
+      "installment_months": 24,
+      "installment_monthly_usd": 0,
+      "esim_slots": 1,
+      "satellite_services": [],
+      "upgrade_phone": "iphone_16"
+    },
+    "pixel_9": {
+      "model": "Pixel 9",
+      "brand": "Google",
+      "retail_usd": 649,
+      "installment_months": 24,
+      "installment_monthly_usd": 27.04,
+      "esim_slots": 2,
+      "satellite_services": ["skylo", "starlink"],
+      "upgrade_phone": "pixel_10"
+    },
+    "pixel_10": {
+      "model": "Pixel 10",
+      "brand": "Google",
+      "retail_usd": 799,
+      "installment_months": 24,
+      "installment_monthly_usd": 33.29,
+      "esim_slots": 2,
+      "satellite_services": ["skylo", "starlink"],
+      "upgrade_phone": null
+    },
+    "galaxy_s25": {
+      "model": "Galaxy S25",
+      "brand": "Samsung",
+      "retail_usd": 799,
+      "installment_months": 24,
+      "installment_monthly_usd": 33.29,
+      "esim_slots": 2,
+      "satellite_services": ["starlink"],
+      "upgrade_phone": null
+    },
+    "galaxy_s24": {
+      "model": "Galaxy S24",
+      "brand": "Samsung",
+      "retail_usd": 649,
+      "installment_months": 24,
+      "installment_monthly_usd": 27.04,
+      "esim_slots": 2,
+      "satellite_services": ["starlink"],
+      "upgrade_phone": "galaxy_s25"
+    },
+    "galaxy_a14": {
+      "model": "Galaxy A14",
+      "brand": "Samsung",
+      "retail_usd": 199,
+      "installment_months": 24,
+      "installment_monthly_usd": 8.29,
+      "esim_slots": 1,
+      "satellite_services": ["starlink"],
+      "upgrade_phone": "galaxy_s25"
+    },
+    "older_android": {
+      "model": "Galaxy A32",
+      "brand": "Samsung",
+      "retail_usd": 0,
+      "installment_months": 24,
+      "installment_monthly_usd": 0,
+      "esim_slots": 1,
+      "satellite_services": [],
+      "upgrade_phone": "galaxy_s25"
+    }
+  }
+}

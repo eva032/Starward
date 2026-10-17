@@ -1,0 +1,188 @@
+{
+  "as_of": "2026-10-17",
+  "note": "Synthetic households only. Names, balances, and tenure are fictional.",
+  "households": {
+    "chen_family": {
+      "id": "chen_family",
+      "name": "Chen family (T-Mobile)",
+      "summary": "Three hikers. One $10 trip-month add-on beats upgrading everyone.",
+      "carrier_home": "T-Mobile",
+      "trip_month": "June",
+      "travelers": ["mom", "maya", "dad"]
+    },
+    "park_friends": {
+      "id": "park_friends",
+      "name": "Park friends (already covered)",
+      "summary": "Non-T-Mobile group whose phones already cover the route—buy nothing.",
+      "carrier_home": "AT&T",
+      "trip_month": "June",
+      "travelers": ["sam", "riley"]
+    },
+    "nguyen_household": {
+      "id": "nguyen_household",
+      "name": "Nguyen household (mixed carriers)",
+      "summary": "T-Satellite already on one line; household Mix says nobody else needs to buy.",
+      "carrier_home": "T-Mobile",
+      "trip_month": "June",
+      "travelers": ["jordan", "alex"]
+    },
+    "solo_pixel": {
+      "id": "solo_pixel",
+      "name": "Solo Verizon Pixel",
+      "summary": "One hiker: Skylo ridge gap → T-Satellite for the trip month.",
+      "carrier_home": "Verizon",
+      "trip_month": "June",
+      "travelers": ["casey"]
+    },
+    "garcia_wait": {
+      "id": "garcia_wait",
+      "name": "Garcia household (wait to upgrade)",
+      "summary": "Incompatible phone on the trip; Timekeeper says wait for payoff—not upgrade now.",
+      "carrier_home": "AT&T",
+      "trip_month": "June",
+      "travelers": ["luis", "ana"]
+    }
+  },
+  "lines": {
+    "mom": {
+      "id": "mom",
+      "display_name": "Mom",
+      "carrier": "T-Mobile",
+      "phone": "iPhone 15",
+      "device_id": "iphone_15",
+      "plan_id": "tmobile_go5g",
+      "services": ["globalstar"],
+      "device_age_months": 14,
+      "financing_balance_usd": 180,
+      "financing_months_left": 6,
+      "tenure_months": 48,
+      "existing_addons": []
+    },
+    "maya": {
+      "id": "maya",
+      "display_name": "Maya",
+      "carrier": "Verizon",
+      "phone": "Pixel 9",
+      "device_id": "pixel_9",
+      "plan_id": "verizon_unlimited_plus",
+      "services": ["skylo"],
+      "device_age_months": 8,
+      "financing_balance_usd": 320,
+      "financing_months_left": 12,
+      "tenure_months": 20,
+      "existing_addons": []
+    },
+    "dad": {
+      "id": "dad",
+      "display_name": "Dad",
+      "carrier": "T-Mobile",
+      "phone": "Galaxy A32",
+      "device_id": "older_android",
+      "plan_id": "tmobile_go5g",
+      "services": [],
+      "device_age_months": 36,
+      "financing_balance_usd": 60,
+      "financing_months_left": 2,
+      "tenure_months": 72,
+      "existing_addons": []
+    },
+    "sam": {
+      "id": "sam",
+      "display_name": "Sam",
+      "carrier": "AT&T",
+      "phone": "iPhone 15",
+      "device_id": "iphone_15",
+      "plan_id": "att_unlimited_extra",
+      "services": ["globalstar"],
+      "device_age_months": 10,
+      "financing_balance_usd": 0,
+      "financing_months_left": 0,
+      "tenure_months": 30,
+      "existing_addons": []
+    },
+    "riley": {
+      "id": "riley",
+      "display_name": "Riley",
+      "carrier": "AT&T",
+      "phone": "iPhone 16",
+      "device_id": "iphone_16",
+      "plan_id": "att_unlimited_starter",
+      "services": ["globalstar"],
+      "device_age_months": 3,
+      "financing_balance_usd": 700,
+      "financing_months_left": 21,
+      "tenure_months": 12,
+      "existing_addons": []
+    },
+    "jordan": {
+      "id": "jordan",
+      "display_name": "Jordan",
+      "carrier": "T-Mobile",
+      "phone": "Galaxy S25",
+      "device_id": "galaxy_s25",
+      "plan_id": "tmobile_beyond",
+      "services": ["starlink"],
+      "device_age_months": 4,
+      "financing_balance_usd": 500,
+      "financing_months_left": 18,
+      "tenure_months": 24,
+      "existing_addons": ["tsatellite"]
+    },
+    "alex": {
+      "id": "alex",
+      "display_name": "Alex",
+      "carrier": "T-Mobile",
+      "phone": "iPhone 13",
+      "device_id": "iphone_13",
+      "plan_id": "tmobile_go5g",
+      "services": [],
+      "device_age_months": 28,
+      "financing_balance_usd": 0,
+      "financing_months_left": 0,
+      "tenure_months": 40,
+      "existing_addons": []
+    },
+    "casey": {
+      "id": "casey",
+      "display_name": "Casey",
+      "carrier": "Verizon",
+      "phone": "Pixel 9",
+      "device_id": "pixel_9",
+      "plan_id": "verizon_unlimited_plus",
+      "services": ["skylo"],
+      "device_age_months": 6,
+      "financing_balance_usd": 400,
+      "financing_months_left": 14,
+      "tenure_months": 18,
+      "existing_addons": []
+    },
+    "luis": {
+      "id": "luis",
+      "display_name": "Luis",
+      "carrier": "AT&T",
+      "phone": "iPhone 12",
+      "device_id": "iphone_12",
+      "plan_id": "att_unlimited_starter",
+      "services": [],
+      "device_age_months": 40,
+      "financing_balance_usd": 90,
+      "financing_months_left": 3,
+      "tenure_months": 60,
+      "existing_addons": []
+    },
+    "ana": {
+      "id": "ana",
+      "display_name": "Ana",
+      "carrier": "AT&T",
+      "phone": "iPhone 15",
+      "device_id": "iphone_15",
+      "plan_id": "att_unlimited_extra",
+      "services": ["globalstar"],
+      "device_age_months": 11,
+      "financing_balance_usd": 250,
+      "financing_months_left": 9,
+      "tenure_months": 36,
+      "existing_addons": []
+    }
+  }
+}

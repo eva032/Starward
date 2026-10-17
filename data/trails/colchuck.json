@@ -1,0 +1,116 @@
+{
+  "id": "colchuck",
+  "name": "Colchuck Lake",
+  "start_time": "9:00am",
+  "cell_spots": [
+    "Stuart Lake Trailhead",
+    "Colchuck Lake shore"
+  ],
+  "points": [
+    {
+      "lat": 47.528,
+      "lon": -120.821,
+      "elev_m": 1036,
+      "canopy": 0.3,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.5262,
+      "lon": -120.8222,
+      "elev_m": 1070,
+      "canopy": 0.8,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.5241,
+      "lon": -120.8238,
+      "elev_m": 1110,
+      "canopy": 0.85,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.5222,
+      "lon": -120.825,
+      "elev_m": 1150,
+      "canopy": 0.55,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.52,
+      "lon": -120.8262,
+      "elev_m": 1200,
+      "canopy": 0.75,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.518,
+      "lon": -120.8275,
+      "elev_m": 1260,
+      "canopy": 0.7,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.516,
+      "lon": -120.8283,
+      "elev_m": 1320,
+      "canopy": 0.18,
+      "south_blocked": true
+    },
+    {
+      "lat": 47.5138,
+      "lon": -120.8292,
+      "elev_m": 1380,
+      "canopy": 0.15,
+      "south_blocked": true
+    },
+    {
+      "lat": 47.5115,
+      "lon": -120.83,
+      "elev_m": 1430,
+      "canopy": 0.12,
+      "south_blocked": true
+    },
+    {
+      "lat": 47.5092,
+      "lon": -120.8311,
+      "elev_m": 1480,
+      "canopy": 0.65,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.507,
+      "lon": -120.832,
+      "elev_m": 1530,
+      "canopy": 0.35,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.5048,
+      "lon": -120.8326,
+      "elev_m": 1580,
+      "canopy": 0.8,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.5025,
+      "lon": -120.8332,
+      "elev_m": 1630,
+      "canopy": 0.85,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.5,
+      "lon": -120.8337,
+      "elev_m": 1670,
+      "canopy": 0.4,
+      "south_blocked": false
+    },
+    {
+      "lat": 47.497,
+      "lon": -120.834,
+      "elev_m": 1690,
+      "canopy": 0.1,
+      "south_blocked": false
+    }
+  ]
+}

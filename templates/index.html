@@ -16,10 +16,13 @@
     body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
     a { color: var(--accent); }
 
-    .top { background: var(--navy); color: #fff; padding: 14px 24px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+    .top { background: var(--navy); color: #fff; padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
     .brand { font-weight: 800; font-size: 1.2rem; letter-spacing: .2px; }
     .brand span { color: #ffd166; }
-    .trip { color: #b9c3d6; font-size: .92rem; }
+    .trip { color: #b9c3d6; font-size: .9rem; }
+    .modes { margin-left: auto; display: inline-flex; background: rgba(255,255,255,.1); border-radius: 8px; padding: 3px; }
+    .modes a { color: #c5d0e4; text-decoration: none; font-weight: 600; font-size: .85rem; padding: 6px 12px; border-radius: 6px; }
+    .modes a.on { background: #fff; color: var(--navy); }
 
     .grid { max-width: 1240px; margin: 0 auto; padding: 20px 24px 40px; display: grid; gap: 20px;
             grid-template-columns: minmax(340px, 420px) 1fr;
@@ -90,13 +93,17 @@
 <body>
   <header class="top">
     <div class="brand"><span>✦</span> Starward</div>
-    <div class="trip">{{ trail.name }} · starts {{ coverage.start_time }} · {{ coverage.checkins|length }} check-ins</div>
+    <div class="trip">{{ trail.name }} · starts {{ coverage.start_time }}</div>
+    <nav class="modes" aria-label="Planning mode">
+      <a href="/?profile={{ profile_id }}" class="on">One phone</a>
+      <a href="/household?mode=custom">Whole household</a>
+    </nav>
   </header>
 
   <main class="grid">
     <section class="setup card">
       <form method="get" action="/">
-        <p class="eyebrow">Your phone &amp; carrier</p>
+        <p class="eyebrow">1. Your phone</p>
         <select name="profile" onchange="this.form.submit()" aria-label="Your phone and carrier">
           {% for pid, p in profiles.items() %}
             <option value="{{ pid }}" {% if pid == profile_id %}selected{% endif %}>{{ p.name }}</option>
@@ -132,7 +139,7 @@
             {% endfor %}
           </details>
         {% endif %}
-        <p class="fine">Prices as of {{ rec.as_of }}. Coverage is an estimate, not a guarantee.</p>
+        <p class="fine">Prices as of {{ rec.as_of }}{% if rec.source_url %} · <a href="{{ rec.source_url }}" target="_blank" rel="noopener">source</a>{% endif %}. Coverage is an estimate, not a guarantee.</p>
       </div>
     </section>
 
@@ -158,7 +165,7 @@
     </section>
 
     <section class="checkins card">
-      <p class="eyebrow">Check-in plan{% if view == "tsat" %} · with T-Satellite{% endif %}</p>
+      <p class="eyebrow">2. Check-in plan{% if view == "tsat" %} · with T-Satellite{% endif %}</p>
       <p class="start">Start at the trailhead around {{ coverage.start_time }}</p>
       <ol class="timeline">
         {% for c in coverage.checkins %}
@@ -175,7 +182,7 @@
     </section>
 
     <section class="share card">
-      <p class="eyebrow">Share your plan</p>
+      <p class="eyebrow">3. Share your plan</p>
       <form method="post" action="/share">
         <input type="hidden" name="profile" value="{{ profile_id }}">
         <input type="tel" name="contact" placeholder="Emergency contact, e.g. +1 555 123 4567" aria-label="Emergency contact phone" required>
