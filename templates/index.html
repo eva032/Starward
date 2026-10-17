@@ -50,25 +50,55 @@
     .onboard { border: 1px solid #cfe0ff; background: #f7faff; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
     .onboard p { margin: 0; font-size: .92rem; }
 
-    .rec { margin-top: 16px; border-radius: 10px; padding: 16px; border-left: 4px solid; }
+    .rec { margin-top: 16px; border-radius: 10px; padding: 16px 16px 14px; border-left: 4px solid; }
     .rec.covered { background: var(--green-bg); border-color: var(--green); }
     .rec.add_service { background: var(--yellow-bg); border-color: var(--yellow); }
+    .rec.cannot_add { background: #fff6eb; border-color: #c47a2c; }
     .rec.not_compatible { background: var(--gray-bg); border-color: var(--gray); }
-    .pill { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; color: #fff; }
-    .covered .pill { background: var(--green); } .add_service .pill { background: #b88a00; } .not_compatible .pill { background: var(--gray); }
-    .headline { font-size: 1.15rem; font-weight: 700; margin: 8px 0 12px; line-height: 1.3; }
+    .pill { display: inline-block; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 999px; color: #fff; }
+    .covered .pill { background: var(--green); } .add_service .pill { background: #9a7400; color: #fff; }
+    .cannot_add .pill { background: #a35f16; } .not_compatible .pill { background: var(--gray); }
+    .rec-answer { margin: 8px 0 0; }
+    .rec-answer .primary { font-size: 1.35rem; font-weight: 800; line-height: 1.25; margin: 0; color: var(--ink); letter-spacing: -.01em; }
+    .rec-answer .subhead { font-size: .9rem; color: #3a4552; margin: 4px 0 0; line-height: 1.35; }
+    .impact { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: .88rem; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,.75); border: 1px solid rgba(24,33,43,.12); color: var(--ink); font-variant-numeric: tabular-nums; }
+    .chip.gain { border-color: #1f9d55; background: #e8f6ee; }
+    .chip.cost { border-color: #cfd5dc; }
+    .chip .chip-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .why-this { margin: 14px 0 0; padding: 0; background: transparent; }
+    .why-this h3 { margin: 0 0 6px; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+    .why-this ul { margin: 0; padding-left: 1.15rem; }
+    .why-this li { font-size: .9rem; margin: 4px 0; color: #2a3440; }
+    .vs-box { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,.55); border: 1px solid rgba(24,33,43,.08); }
+    .vs-box h3 { margin: 0 0 4px; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+    .vs-box p { margin: 0; font-size: .85rem; color: #3a4552; line-height: 1.4; }
+    .blocked-insight { margin: 12px 0 0; padding: 12px; border-radius: 8px; background: #fff; border: 1px dashed #a35f16; }
+    .blocked-insight h3 { margin: 0; font-size: .95rem; font-weight: 700; color: var(--ink); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .status-badge { display: inline-block; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 3px 8px; border-radius: 999px; background: #f3e0c8; color: #6a3d0a; border: 1px solid #c47a2c; }
+    .blocked-insight .bi-metrics { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+    .blocked-insight .bi-reason { margin: 8px 0 0; font-size: .85rem; color: #4a3a28; }
     .opt { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
     .opt-action { font-weight: 600; }
     .cost { font-weight: 700; white-space: nowrap; }
-    .dots { display: inline-flex; gap: 3px; vertical-align: middle; margin-right: 6px; }
-    .dots i { width: 9px; height: 9px; border-radius: 50%; background: #cfd5dc; }
-    .dots i.on { background: var(--green); }
     .covers { font-size: .85rem; color: var(--muted); margin: 4px 0 0; }
     .why { font-size: .9rem; color: #36404b; margin: 6px 0 0; }
-    details { margin-top: 12px; border-top: 1px solid rgba(0,0,0,.08); padding-top: 10px; }
+    .caveat { font-size: .85rem; color: #5c4a32; margin: 4px 0 0; }
+    .opt.blocked { opacity: .95; }
+    .opt.blocked .opt-action { color: #5d6874; font-weight: 600; }
+    .tag-blocked { font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #6a3d0a; background: #f3e0c8; border: 1px solid #c47a2c; padding: 2px 6px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+    details { margin-top: 12px; }
     summary { cursor: pointer; font-weight: 600; font-size: .9rem; color: var(--muted); }
-    details .alt { margin-top: 12px; }
+    summary:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px;
+    }
+    details.rec-more { border-top: 1px solid rgba(0,0,0,.08); padding-top: 10px; }
+    details.rec-more > summary { list-style: none; }
+    details.rec-more > summary::-webkit-details-marker { display: none; }
+    details.rec-more .alt { margin-top: 12px; padding-top: 4px; }
+    .alt.blocked-alt { padding: 10px; border-radius: 8px; background: rgba(255,255,255,.65); border: 1px dashed #c47a2c; }
     .fine { font-size: .78rem; color: var(--muted); margin: 12px 0 0; }
+    .rec.covered .why-this { margin-top: 10px; }
 
     .timeline { list-style: none; margin: 0; padding: 0; }
     .timeline li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: start; }
@@ -193,38 +223,103 @@
           {% if rec.inferred %} · estimated from phone/carrier{% endif %}
         </p>
 
-        {% set labels = {"covered": "You're covered", "add_service": "One add-on helps", "not_compatible": "No add-on helps"} %}
+        {% set labels = {
+          "covered": "You're covered",
+          "add_service": "Recommended add-on",
+          "cannot_add": "Add-on blocked for now",
+          "not_compatible": "No add-on helps"
+        } %}
         {% set top = rec.options[0] %}
-        <div class="rec {{ rec.outcome }}">
-          <span class="pill">{{ labels[rec.outcome] }}</span>
-          <p class="headline">{{ rec.headline }}</p>
-          <div class="opt"><span class="opt-action">{{ top.action }}</span><span class="cost">{{ top.cost }}</span></div>
-          {% if top.checkins_covered is not none %}
-            <p class="covers"><span class="dots">{% for i in range(top.total) %}<i class="{{ 'on' if i < top.checkins_covered }}"></i>{% endfor %}</span>covers {{ top.checkins_covered }} of {{ top.total }} check-ins</p>
-          {% endif %}
-          <p class="why">{{ top.reason }}</p>
+        <article class="rec {{ rec.outcome }}" aria-labelledby="rec-primary">
+          <span class="pill">{{ labels.get(rec.outcome, "Recommendation") }}</span>
 
-          {% if rec.options|length > 1 %}
-            <details>
+          <div class="rec-answer">
+            <h2 id="rec-primary" class="primary">{{ top.label or top.action }}</h2>
+            {% if rec.headline and rec.outcome != "covered" %}
+              <p class="subhead">{{ rec.headline }}</p>
+            {% endif %}
+          </div>
+
+          {% if rec.impact %}
+            <div class="impact" aria-label="Recommendation impact">
+              {% for chip in rec.impact %}
+                <span class="chip {{ chip.kind }}">
+                  <span class="chip-label">{% if chip.kind == "checkins" %}Check-ins{% elif chip.kind == "gain" %}Gain{% else %}Cost{% endif %}</span>
+                  {{ chip.text }}
+                </span>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if rec.blocked_insight %}
+            <aside class="blocked-insight" aria-label="Blocked improvement">
+              <h3>
+                {{ rec.blocked_insight.title }}
+                <span class="status-badge">{{ rec.blocked_insight.status }}</span>
+              </h3>
+              <div class="bi-metrics">
+                <span class="chip checkins"><span class="chip-label">If available</span> {{ rec.blocked_insight.checkins }}</span>
+                <span class="chip gain"><span class="chip-label">Gain</span> {{ rec.blocked_insight.gain }}</span>
+                <span class="chip cost"><span class="chip-label">Cost</span> {{ rec.blocked_insight.cost }}</span>
+              </div>
+              <p class="bi-reason">{{ rec.blocked_insight.reason }}</p>
+            </aside>
+          {% endif %}
+
+          {% if rec.why_this %}
+            <section class="why-this" aria-labelledby="why-this-heading">
+              <h3 id="why-this-heading">Why this?</h3>
+              <ul>
+                {% for point in rec.why_this %}
+                  <li>{{ point }}</li>
+                {% endfor %}
+              </ul>
+            </section>
+          {% endif %}
+
+          {% if rec.vs_alternative and rec.outcome != "covered" %}
+            <section class="vs-box" aria-labelledby="vs-heading">
+              <h3 id="vs-heading">Compared with the alternative</h3>
+              <p>{{ rec.vs_alternative }}</p>
+            </section>
+          {% elif rec.vs_alternative and rec.outcome == "covered" %}
+            <p class="fine" style="margin-top:10px">{{ rec.vs_alternative }}</p>
+          {% endif %}
+
+          {% if rec.options|length > 1 and rec.outcome != "covered" %}
+            <details class="rec-more">
               <summary>Other options ({{ rec.options|length - 1 }})</summary>
               {% for o in rec.options[1:] %}
-                <div class="alt">
-                  <div class="opt"><span class="opt-action">{{ o.action }}</span><span class="cost">{{ o.cost }}</span></div>
+                <div class="alt {{ 'blocked-alt' if o.actionable == false }}" {% if o.actionable == false %}aria-disabled="true"{% endif %}>
+                  <div class="opt {{ 'blocked' if o.actionable == false }}">
+                    <span class="opt-action">
+                      {{ o.label or o.action }}
+                      {% if o.actionable == false %}<span class="tag-blocked">Not available</span>{% endif %}
+                    </span>
+                    <span class="cost">{{ o.cost }}</span>
+                  </div>
                   {% if o.checkins_covered is not none %}
-                    <p class="covers"><span class="dots">{% for i in range(o.total) %}<i class="{{ 'on' if i < o.checkins_covered }}"></i>{% endfor %}</span>covers {{ o.checkins_covered }} of {{ o.total }}</p>
+                    <p class="covers">
+                      {% if o.checkins_before is not none and o.coverage_gain and o.coverage_gain > 0 %}
+                        {{ o.checkins_before }} → {{ o.checkins_after }} check-ins
+                      {% else %}
+                        {{ o.checkins_covered }} of {{ o.total }} check-ins
+                      {% endif %}
+                    </p>
                   {% endif %}
-                  <p class="why">{{ o.reason }}</p>
+                  {% if o.why %}<p class="why">{{ o.why }}</p>{% endif %}
+                  {% if o.caveat and o.actionable == false %}<p class="caveat">{{ o.caveat }}</p>{% endif %}
                 </div>
               {% endfor %}
             </details>
           {% endif %}
-          <p class="fine">Prices as of {{ rec.as_of }}{% if rec.source_url %} · <a href="{{ rec.source_url }}" target="_blank" rel="noopener">source</a>{% endif %}. Coverage is an estimate, not a guarantee.</p>
-        </div>
+          <p class="fine">Prices as of {{ rec.as_of }}{% if rec.source_url %} · <a href="{{ rec.source_url }}" target="_blank" rel="noopener">pricing source</a>{% endif %}. Simulated coverage for demo — estimate, not a guarantee.</p>
+        </article>
       {% endif %}
 
       <details style="margin-top:14px">
-        <summary>Pitch demos (fake presets)</summary>
-        <p class="meta">Only for judging demos — not how real users start.</p>
+        <summary>Pitch demos (sample presets)</summary>
+        <p class="meta">Sample setups for demos — not how real users start.</p>
         <p class="meta">
           {% for pid, p in profiles.items() %}
             <a href="/?demo={{ pid }}">{{ p.name }}</a>{% if not loop.last %} · {% endif %}

@@ -36,16 +36,145 @@ def _service_names(services):
     return " and ".join(SERVICES[s]["name"] for s in services)
 
 
+def _trip_kwargs(source=None, trail=None):
+    """Trip timing for get_coverage from a profile or household; fall back to trail defaults."""
+    src = source or {}
+    return {
+        "trip_date": src.get("trip_date") or (trail or {}).get("trip_date"),
+        "start_time": src.get("start_time") or (trail or {}).get("start_time"),
+    }
+
+
+def _tsat_gap_why(phone, services, gaps):
+    """Shared coverage-gap explanation for actionable and blocked add-on paths."""
+    blocked = [s for s in services if SERVICES[s]["blocked_by_south_ridge"]]
+    if blocked:
+        sat = SERVICES[blocked[0]]["constellation"]
+        return (f"Your {phone}'s {sat} link sits low in the southern sky. Near "
+                f"{_short(gaps[0])}, a ridge blocks that view—so our estimate shows a weak chance "
+                f"with your current setup. T-Satellite uses Starlink passes overhead, which gives "
+                f"you a better chance at those spots.")
+    if services:
+        return (f"Adding T-Satellite adds Starlink passes overhead, which our estimate says "
+                f"improves your chance at {_short(gaps[0])}.")
+    return (f"Your {phone} can use T-Satellite, but satellite texting isn't on yet. "
+            f"Turning it on for this trip gives you a better chance at the check-ins.")
+
+
+def _gain_phrase(gain, *, verb="Adds"):
+    if gain is None:
+        return None
+    if gain <= 0:
+        return "No coverage gain"
+    unit = "check-in" if gain == 1 else "check-ins"
+    return f"{verb} {gain} more {unit}"
+
+
+def _cost_per_month_label(cost):
+    """Avoid '$10/mo/month' when SERVICES cost already includes /mo."""
+    text = str(cost or "").strip()
+    if not text:
+        return text
+    if text.endswith("/mo") or "month" in text.lower():
+        return text
+    return f"{text}/month"
+
+
+_ACTION_LABELS = {
+    "Add T-Satellite for the trip month only": "Add T-Satellite",
+    "Add it only for people on this hike": "Add only for hikers",
+    "Keep your current setup": "Keep your current setup",
+    "Keep your current setup for now": "Keep your current setup for now",
+    "T-Satellite (blocked on this line)": "T-Satellite",
+    "Plan check-ins where you'll have regular cell signal": "Plan around cell signal",
+    "Consider a dedicated satellite messenger": "Consider a satellite messenger",
+}
+
+
+def _option(action, cost, total, *, why, actionable, checkins_before=None, checkins_after=None,
+            caveat=None, label=None):
+    """One ranked recommendation option with structured explainability fields."""
+    gain = None
+    if checkins_before is not None and checkins_after is not None:
+        gain = checkins_after - checkins_before
+    covered_display = checkins_after if checkins_after is not None else None
+    reason = why if not caveat else f"{why} {caveat}"
+    return {
+        "action": action,
+        "label": label or _ACTION_LABELS.get(action, action),
+        "cost": cost,
+        "checkins_covered": covered_display,
+        "total": total,
+        "reason": reason,
+        "why": why,
+        "caveat": caveat,
+        "actionable": bool(actionable),
+        "checkins_before": checkins_before,
+        "checkins_after": checkins_after,
+        "coverage_gain": gain,
+    }
+
+
+def _impact_chips(top, *, total, outcome, best_covered=None):
+    """Compact numbers for the primary card (check-ins + cost)."""
+    chips = []
+    before = top.get("checkins_before")
+    after = top.get("checkins_after")
+    gain = top.get("coverage_gain")
+    if before is not None and after is not None and gain and gain > 0:
+        unit = "check-in" if after == 1 else "check-ins"
+        chips.append({"kind": "checkins", "text": f"{before} → {after} {unit}"})
+        gunit = "check-in" if gain == 1 else "check-ins"
+        chips.append({"kind": "gain", "text": f"+{gain} {gunit}"})
+    elif top.get("checkins_covered") is not None:
+        n = top["checkins_covered"]
+        unit = "check-in" if n == 1 else "check-ins"
+        if outcome == "covered" or (before is not None and gain == 0):
+            chips.append({"kind": "checkins", "text": f"{n} of {total} {unit}"})
+        else:
+            chips.append({"kind": "checkins", "text": f"{n} of {total} {unit}"})
+    cost = (top.get("cost") or "").strip()
+    if cost in ("$0", "0", ""):
+        chips.append({"kind": "cost", "text": "$0 change"})
+    elif cost:
+        chips.append({"kind": "cost", "text": cost})
+    return chips[:3]
+
+
+def _with_explain(rec, outcome, headline, options, *, best_covered, why_this, vs_alternative=None,
+                  would_help=None, block_kind=None, blocked_insight=None):
+    """Attach outcome plus compact ranking explanation (deterministic, no scoring dump)."""
+    top = options[0] if options else {}
+    out = {
+        **rec,
+        "outcome": outcome,
+        "best_covered": best_covered,
+        "headline": headline,
+        "options": options,
+        "why_this": why_this[:3],
+        "vs_alternative": vs_alternative,
+        "impact": _impact_chips(top, total=rec["total"], outcome=outcome, best_covered=best_covered),
+    }
+    if would_help is not None:
+        out["would_help"] = would_help
+    if block_kind is not None:
+        out["block_kind"] = block_kind
+    if blocked_insight is not None:
+        out["blocked_insight"] = blocked_insight
+    return out
+
+
 def get_recommendation(trail, profile):
     """Per-phone recommendation. Contract unchanged; extra fields are additive."""
-    current = get_coverage(trail, profile)
+    trip = _trip_kwargs(profile, trail)
+    current = get_coverage(trail, profile, **trip)
     total = len(current["checkins"])
     covered = _count(current)
     services = profile["services"]
     phone = profile["phone"]
-    tsat_ok = profile.get("tsat_compatible", is_tsat_compatible(phone))
-    if profile.get("plan_status") == "cannot_add":
-        tsat_ok = False
+    # Device list vs account/lock: keep these separate (plan_status cannot_add ≠ incompatible phone).
+    device_ok = is_tsat_compatible(phone)
+    account_blocked = profile.get("plan_status") == "cannot_add"
     tsat_cost = SERVICES["starlink"]["cost"]
     rec = {
         "as_of": CATALOG_AS_OF,
@@ -54,90 +183,195 @@ def get_recommendation(trail, profile):
         "total": total,
         "situation_summary": profile.get("summary") or f"{phone} · {profile.get('carrier', '')}",
         "inferred": bool(profile.get("inferred")),
+        "device_tsat_ok": device_ok,
+        "account_blocked": account_blocked,
     }
 
     if services and covered == total:
         if "starlink" in services:
-            why = (f"Your {phone} already includes T-Satellite on your plan. "
-                   f"Our estimate gives you a good chance to text at all {total} check-ins—no add-on needed.")
+            why = (f"Your current setup already covers the planned check-ins. "
+                   f"Your {phone} already includes T-Satellite on your plan.")
         else:
-            why = (f"Your {phone} uses {_service_names(services)}. "
-                   f"Our estimate gives you a good chance to text at all {total} check-ins on this route—"
-                   f"so we won't recommend buying anything.")
-        return {**rec, "outcome": "covered", "best_covered": covered,
-                "headline": "You're set. Don't buy anything for this trip.",
-                "options": [{
-                    "action": "Keep your current setup", "cost": "$0",
-                    "checkins_covered": covered, "total": total,
-                    "reason": why,
-                }]}
+            why = (f"Your current setup already covers the planned check-ins. "
+                   f"Your {phone} uses {_service_names(services)} on this route.")
+        opt = _option(
+            "Keep your current setup", "$0", total,
+            why=why, actionable=True,
+            checkins_before=covered, checkins_after=covered,
+            caveat="No purchase needed for this trip.",
+        )
+        return _with_explain(
+            rec, "covered", "You're set. Don't buy anything for this trip.", [opt],
+            best_covered=covered,
+            why_this=[
+                f"Already covers all {total} planned check-ins",
+                "No add-on cost",
+                "Your current satellite setup is enough on this route",
+            ],
+            vs_alternative="Buying T-Satellite would not improve check-ins further on this trip.",
+        )
 
-    if tsat_ok and "starlink" not in services:
-        boosted = get_coverage(trail, profile, services=services + ["starlink"])
+    # Theoretical T-Satellite gain (device must support the radio; account may still block adding it).
+    with_tsat = covered
+    gaps = []
+    if device_ok and "starlink" not in services:
+        boosted = get_coverage(trail, profile, services=services + ["starlink"], **trip)
         with_tsat = _count(boosted)
         if with_tsat > covered:
             gaps = [c for c, b in zip(current["checkins"], boosted["checkins"])
                     if not c["covered"] and b["covered"]]
-            blocked = [s for s in services if SERVICES[s]["blocked_by_south_ridge"]]
-            if blocked:
-                sat = SERVICES[blocked[0]]["constellation"]
-                why = (f"Your {phone}'s {sat} link sits low in the southern sky. Near "
-                       f"{_short(gaps[0])}, a ridge blocks that view—so our estimate shows a weak chance "
-                       f"with your current setup. T-Satellite uses Starlink passes overhead, which gives "
-                       f"you a better chance at those spots.")
-            elif services:
-                why = (f"Adding T-Satellite adds Starlink passes overhead, which our estimate says "
-                       f"improves your chance at {_short(gaps[0])}.")
-            else:
-                why = (f"Your {phone} can use T-Satellite, but satellite texting isn't on yet. "
-                       f"Turning it on for this trip gives you a better chance at the check-ins.")
-            options = [{
-                "action": "Add T-Satellite for the trip month only", "cost": tsat_cost,
-                "checkins_covered": with_tsat, "total": total,
-                "reason": why + f" It's {tsat_cost} per line—cancel in T-Life after the trip so you "
-                          f"only pay for the month you need.",
-            }]
+
+    if device_ok and "starlink" not in services and with_tsat > covered:
+        why = _tsat_gap_why(phone, services, gaps)
+        gain = with_tsat - covered
+        gain_txt = _gain_phrase(gain)
+        if not account_blocked:
+            # Rank: actionable add-on first, then keep-as-is (cheaper but weaker coverage).
+            options = [_option(
+                "Add T-Satellite for the trip month only", tsat_cost, total,
+                why=why, actionable=True,
+                checkins_before=covered, checkins_after=with_tsat,
+                caveat=(f"It's {tsat_cost} per line—cancel in T-Life after the trip so you "
+                        f"only pay for the month you need."),
+            )]
             if profile.get("household_lines", 1) > 1:
-                options.append({
-                    "action": "Add it only for people on this hike",
-                    "cost": f"{tsat_cost} per line",
-                    "checkins_covered": with_tsat, "total": total,
-                    "reason": "Skip lines for anyone staying home. Only add it for hikers who'll need "
-                              "the check-in texts.",
-                })
+                options.append(_option(
+                    "Add it only for people on this hike", f"{tsat_cost} per line", total,
+                    why="Skip lines for anyone staying home. Only add it for hikers who'll need "
+                        "the check-in texts.",
+                    actionable=True,
+                    checkins_before=covered, checkins_after=with_tsat,
+                ))
             missed = [c for c in current["checkins"] if not c["covered"]]
-            options.append({
-                "action": "Keep your current setup", "cost": "$0",
-                "checkins_covered": covered, "total": total,
-                "reason": f"Saves the add-on, but our estimate shows little or no signal at "
-                          f"{', '.join(_short(c) for c in missed)}. Your contact may get a missed "
-                          f"check-in alert there even when you're fine.",
-            })
-            return {**rec, "outcome": "add_service", "best_covered": with_tsat,
-                    "headline": (f"A $10 add-on covers every check-in." if with_tsat == total
-                                 else f"A $10 add-on covers {with_tsat} of {total} check-ins."),
-                    "options": options}
+            options.append(_option(
+                "Keep your current setup", "$0", total,
+                why=(f"Saves the add-on, but our estimate shows little or no signal at "
+                     f"{', '.join(_short(c) for c in missed)}."),
+                actionable=True,
+                checkins_before=covered, checkins_after=covered,
+                caveat="Your contact may get a missed check-in alert there even when you're fine.",
+            ))
+            headline = (f"A $10 add-on covers every check-in." if with_tsat == total
+                        else f"A $10 add-on covers {with_tsat} of {total} check-ins.")
+            cost_label = _cost_per_month_label(tsat_cost)
+            return _with_explain(
+                rec, "add_service", headline, options,
+                best_covered=with_tsat,
+                why_this=[
+                    f"{gain_txt} ({covered} → {with_tsat} of {total})",
+                    f"Costs {cost_label} for the trip month",
+                    "You can add it on this phone and line",
+                ],
+                vs_alternative=(f"{gain_txt} for {cost_label}. "
+                                f"Keeping your setup costs $0 but does not improve the uncovered segment."),
+            )
+
+        # Compatible device, material gain, but line cannot add the service yet.
+        # Rank usable steps first; blocked theoretical add-on is secondary and not actionable.
+        cell = " and ".join(trail["cell_spots"])
+        block_caveat = (f"This line can't add T-Satellite right now—usually a carrier-locked phone, "
+                        f"no eSIM, or an account restriction. Unlock the phone, move to an eSIM-capable "
+                        f"setup, or clear the account limit before “Add T-Satellite” becomes an option.")
+        options = [
+            _option(
+                "Keep your current setup for now", "$0", total,
+                why=why, actionable=True,
+                checkins_before=covered, checkins_after=covered,
+                caveat=block_caveat,
+            ),
+            _option(
+                "T-Satellite (blocked on this line)", tsat_cost, total,
+                why=why, actionable=False,
+                checkins_before=covered, checkins_after=with_tsat,
+                caveat=block_caveat,
+            ),
+            _option(
+                "Plan check-ins where you'll have regular cell signal", "$0", total,
+                why=(f"Until the line can add the service, lean on regular cell at the {cell}. "
+                     f"Tell your contact to expect texts from those spots and silence in between."),
+                actionable=True,
+            ),
+            _option(
+                "Consider a dedicated satellite messenger",
+                "About $200–$400 + subscription (estimate)", total,
+                why="A separate messenger works without adding T-Satellite to this line. "
+                    "Only worth it if you often hike beyond cell coverage.",
+                actionable=True,
+            ),
+        ]
+        could_gain = _gain_phrase(gain, verb="add")
+        cost_label = _cost_per_month_label(tsat_cost)
+        gunit = "check-in" if gain == 1 else "check-ins"
+        return _with_explain(
+            rec, "cannot_add",
+            "T-Satellite could help, but you can't add it on this line yet.",
+            options,
+            best_covered=with_tsat,
+            would_help=True,
+            block_kind="account",
+            why_this=[
+                f"T-Satellite could {could_gain} ({covered} → {with_tsat} of {total})",
+                "Blocked on this line (lock, eSIM, or account restriction)—not a device incompatibility",
+                "Do not buy the add-on until the line can actually use it",
+            ],
+            vs_alternative=(f"T-Satellite would {could_gain} for {cost_label}, but it is not "
+                            f"usable yet. Keeping your setup is the actionable choice today."),
+            blocked_insight={
+                "title": "T-Satellite could help — not available on this line",
+                "checkins": f"{covered} → {with_tsat} check-ins",
+                "gain": f"+{gain} {gunit}",
+                "cost": cost_label,
+                "status": "Not available yet",
+                "reason": ("Usually a carrier-locked phone, no eSIM, or an account restriction. "
+                           "Unlock, enable eSIM, or clear the account limit before this becomes an option."),
+            },
+        )
 
     cell = " and ".join(trail["cell_spots"])
-    if not tsat_ok:
-        headline = "No add-on will help on this phone."
-        phone_note = (f"T-Satellite isn't available on the {phone}, and we won't suggest buying a "
-                      f"new phone for one hike.")
+    if not device_ok:
+        headline = "Your phone does not support this satellite service."
+        phone_note = (f"The {phone} isn't on T-Mobile's T-Satellite list, so we won't suggest adding "
+                      f"that service—or buying a new phone for one hike.")
+        block_kind = "device"
+        why_this = [
+            f"{phone} cannot use T-Satellite",
+            "No actionable phone add-on for this trip",
+            "Plan around regular cell or a separate messenger",
+        ]
+        vs = "A phone add-on is not available on this device; cell planning is the practical next step."
     else:
-        headline = "No add-on will help on this route."
+        headline = "No add-on will meaningfully improve this route."
         phone_note = "An add-on wouldn't improve check-in coverage on this trail with your setup."
-    return {**rec, "outcome": "not_compatible", "best_covered": covered,
-            "headline": headline,
-            "options": [
-                {"action": "Plan check-ins where you'll have regular cell signal", "cost": "$0",
-                 "checkins_covered": None, "total": total,
-                 "reason": f"{phone_note} You should have regular cell signal at the {cell}. "
-                           f"Tell your contact to expect texts from those spots and silence in between."},
-                {"action": "Consider a dedicated satellite messenger", "cost": "About $200–$400 + subscription (estimate)",
-                 "checkins_covered": None, "total": total,
-                 "reason": "A separate messenger works with the phone you already have. Only worth it if "
-                           "you often hike beyond cell coverage—not something we'd push for a single trip."},
-            ]}
+        block_kind = "no_gain"
+        why_this = [
+            "No available add-on improves check-in coverage here",
+            f"Current estimate stays at {covered} of {total} check-ins",
+            "Focus on cell-covered spots instead of buying a service",
+        ]
+        vs = "Paying for an add-on would not cover additional check-ins on this route."
+    options = [
+        _option(
+            "Plan check-ins where you'll have regular cell signal", "$0", total,
+            why=f"{phone_note} You should have regular cell signal at the {cell}. "
+                f"Tell your contact to expect texts from those spots and silence in between.",
+            actionable=True,
+            checkins_before=covered, checkins_after=covered,
+        ),
+        _option(
+            "Consider a dedicated satellite messenger",
+            "About $200–$400 + subscription (estimate)", total,
+            why="A separate messenger works with the phone you already have. Only worth it if "
+                "you often hike beyond cell coverage—not something we'd push for a single trip.",
+            actionable=True,
+        ),
+    ]
+    return _with_explain(
+        rec, "not_compatible", headline, options,
+        best_covered=covered,
+        block_kind=block_kind,
+        why_this=why_this,
+        vs_alternative=vs,
+    )
 
 
 def _tradein_at(device_id, months):
@@ -217,14 +451,6 @@ def cost_now_vs_later(line):
             "upgrade_now": now_series,
             "upgrade_later": later_series,
         },
-    }
-
-
-def _trip_kwargs(household=None, trail=None):
-    hh = household or {}
-    return {
-        "trip_date": hh.get("trip_date") or (trail or {}).get("trip_date"),
-        "start_time": hh.get("start_time") or (trail or {}).get("start_time"),
     }
 
 

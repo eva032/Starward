@@ -8,7 +8,9 @@ Predicts where on a hike your phone can text by satellite, recommends the cheape
 python -m venv venv
 source venv/bin/activate        # Windows PowerShell: venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python app.py                   # http://localhost:5000
+python app.py                   # http://127.0.0.1:5000
+# If port 5000 is busy (common on macOS when AirPlay Receiver is on):
+PORT=5001 python app.py         # http://127.0.0.1:5001
 ```
 
 Copy `.env.example` to `.env` when real keys are needed. None are used yet.

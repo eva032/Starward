@@ -118,9 +118,9 @@ def get_coverage(trail, profile, services=None, trip_date=None, start_time=None)
             "covered": seg["color"] != "red",
         })
 
-    note = "terrain + canopy data only"
+    note = "Demo estimate · terrain + canopy"
     if trip_date:
-        note = f"terrain + canopy · trip {trip_date} (satellite windows still estimated)"
+        note = f"Demo estimate · terrain + canopy · trip {trip_date}"
 
     return {
         "segments": segments,

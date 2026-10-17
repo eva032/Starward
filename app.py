@@ -356,7 +356,7 @@ def share():
         profile = PROFILES.get(profile_id, PROFILES[DEFAULT_PROFILE])
         coverage = get_coverage(TRAIL, profile)
     share_plan(contact, TRAIL, coverage, hiker=profile.get("display_name", "Sam"))
-    return _render(profile_id, notice=f"Plan sent to {contact} (fake)")
+    return _render(profile_id, notice=f"Plan shared with {contact} (demo only — nothing was sent)")
 
 
 @app.post("/simulate/missed")
@@ -364,7 +364,7 @@ def missed():
     if request.is_json:
         return {"alert": simulate_missed((request.get_json(silent=True) or {}).get("contact", ""))}
     alert = simulate_missed(request.form.get("contact", ""))
-    return _render(request.form.get("profile"), notice=f"Alert drafted (fake, not sent):\n{alert}")
+    return _render(request.form.get("profile"), notice=f"Missed check-in alert drafted (demo only — not sent):\n{alert}")
 
 
 @app.post("/webhook/photon")
@@ -443,4 +443,16 @@ def household_save():
 
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    # Prefer PORT / STARWARD_PORT. Default 5000 matches README; on macOS, AirPlay
+    # Receiver (ControlCenter) often occupies *:5000 — use PORT=5001 in that case.
+    port = int(os.environ.get("PORT") or os.environ.get("STARWARD_PORT") or "5000")
+    print(f"Starward → http://127.0.0.1:{port}")
+    try:
+        app.run(host="127.0.0.1", port=port, debug=True)
+    except OSError as exc:
+        if getattr(exc, "errno", None) in (48, 98) or "Address already in use" in str(exc):
+            print(
+                f"Port {port} is already in use. "
+                "If macOS AirPlay Receiver owns 5000, run: PORT=5001 python app.py"
+            )
+        raise

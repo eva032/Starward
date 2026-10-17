@@ -188,7 +188,6 @@ def build_situation_profile(
     carrier = (carrier or "").strip() or "Other / not listed"
     plan_name = (plan_name or "").strip() or "My plan"
     services = infer_services(phone, carrier, satellite_choice, plan_status, plan_name)
-    tsat_ok = is_tsat_compatible(phone) and plan_status != "cannot_add"
     return {
         "id": "situation",
         "name": f"{display_name} · {phone}",
@@ -196,7 +195,8 @@ def build_situation_profile(
         "carrier": carrier,
         "phone": phone,
         "services": services,
-        "tsat_compatible": tsat_ok,
+        # Device capability only — account/lock restrictions live in plan_status.
+        "tsat_compatible": is_tsat_compatible(phone),
         "plan": plan_name,
         "plan_status": plan_status,
         "satellite_choice": satellite_choice,
@@ -229,7 +229,8 @@ def line_as_profile(line):
         "carrier": line["carrier"],
         "phone": line["phone"],
         "services": services,
-        "tsat_compatible": is_tsat_compatible(line["phone"]) and line.get("plan_status") != "cannot_add",
+        "tsat_compatible": is_tsat_compatible(line["phone"]),
+        "plan_status": line.get("plan_status", "can_add_tsat"),
         "plan": plan_name,
         "monthly_cost": PLANS.get(line.get("plan_id") or "", {}).get("monthly_cost", 0),
         "household_lines": 1,
