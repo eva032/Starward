@@ -1,0 +1,66 @@
+{
+  "as_of": "2026-10-17",
+  "notes": "Public-market facts for onboarding. Plan names are categories, not a full carrier price book. Re-check sources before demo day.",
+  "sources": {
+    "t_satellite": "https://www.t-mobile.com/coverage/satellite-phone-service",
+    "t_satellite_devices": "https://www.t-mobile.com/support/coverage/satellite-support",
+    "apple_messages_satellite": "https://support.apple.com/en-us/120930",
+    "verizon_satellite": "https://www.verizon.com/support/satellite-faqs/",
+    "skylo_mvno": "https://www.skylo.tech/newsroom/charter-and-comcast-launch-satellite-connectivity-for-mobile-devices"
+  },
+  "carriers": [
+    {"id": "tmobile", "name": "T-Mobile", "kind": "mno"},
+    {"id": "verizon", "name": "Verizon", "kind": "mno"},
+    {"id": "att", "name": "AT&T", "kind": "mno"},
+    {"id": "uscellular", "name": "UScellular", "kind": "mno"},
+    {"id": "google_fi", "name": "Google Fi", "kind": "mvno"},
+    {"id": "visible", "name": "Visible", "kind": "mvno"},
+    {"id": "mint", "name": "Mint Mobile", "kind": "mvno"},
+    {"id": "metro", "name": "Metro by T-Mobile", "kind": "mvno"},
+    {"id": "cricket", "name": "Cricket", "kind": "mvno"},
+    {"id": "boost", "name": "Boost Mobile", "kind": "mvno"},
+    {"id": "spectrum", "name": "Spectrum Mobile", "kind": "mvno"},
+    {"id": "xfinity", "name": "Xfinity Mobile", "kind": "mvno"},
+    {"id": "us_mobile", "name": "US Mobile", "kind": "mvno"},
+    {"id": "other", "name": "Other / not listed", "kind": "other"}
+  ],
+  "plan_statuses": [
+    {
+      "id": "tsat_included",
+      "label": "T-Satellite is already included in my plan",
+      "hint": "T-Mobile Experience Beyond, Go5G Next, Better Value, and similar top plans."
+    },
+    {
+      "id": "can_add_tsat",
+      "label": "I can add T-Satellite for about $10/mo (or I'm not sure)",
+      "hint": "Works on T-Mobile and, with an unlocked compatible phone, on other carriers too."
+    },
+    {
+      "id": "cannot_add",
+      "label": "I can't add T-Satellite on this line",
+      "hint": "Rare — locked phone, no eSIM slot, or corporate restriction."
+    }
+  ],
+  "satellite_today_choices": [
+    {"id": "auto", "label": "Not sure — estimate from my phone & carrier"},
+    {"id": "globalstar", "label": "Apple Messages via Satellite (iPhone 14+)"},
+    {"id": "skylo", "label": "Carrier/Google satellite on Skylo (Pixel / some Samsung)"},
+    {"id": "starlink", "label": "T-Satellite (Starlink) is already on"},
+    {"id": "none", "label": "Nothing yet / emergency SOS only"}
+  ],
+  "apple_messages_phones_min": "iPhone 14",
+  "skylo_carriers": ["Verizon", "Spectrum Mobile", "Xfinity Mobile"],
+  "skylo_phones": [
+    "Pixel 9", "Pixel 9 Pro", "Pixel 9 Pro XL", "Pixel 9 Pro Fold",
+    "Pixel 10", "Pixel 10 Pro", "Pixel 10 Pro XL", "Pixel 10 Fold",
+    "Galaxy S25", "Galaxy S25+", "Galaxy S25 Ultra", "Galaxy S25 Edge", "Galaxy S25 FE",
+    "Galaxy Z Fold7", "Galaxy Z Flip7"
+  ],
+  "skylo_excluded_phones": ["Pixel 9a"],
+  "tsat_included_plan_keywords": [
+    "experience beyond", "go5g next", "better value", "super mobile", "t-priority"
+  ],
+  "incompatible_example_phones": [
+    "iPhone 12", "iPhone 11", "iPhone XR", "Pixel 8", "Pixel 7", "Galaxy S20", "Galaxy A32", "Other / not listed"
+  ]
+}

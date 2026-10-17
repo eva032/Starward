@@ -186,12 +186,19 @@
                   </label>
                 </div>
                 <label class="field">Plan name
-                  <input type="text" name="plan" value="{{ line.plan or 'My plan' }}" placeholder="e.g. Experience Beyond">
+                  <input type="text" name="plan" value="{{ line.plan or 'My plan' }}" placeholder="e.g. Experience Beyond, Mint Unlimited">
+                </label>
+                <label class="field">T-Satellite on this plan?
+                  <select name="plan_status">
+                    {% for pid, label, hint in plan_status_choices %}
+                      <option value="{{ pid }}" {% if line.plan_status == pid %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
                 </label>
                 <label class="field">Satellite texting today
                   <select name="satellite">
                     {% for value, label in satellite_choices %}
-                      <option value="{{ value }}" {% if sat_by_line[line.id] == value %}selected{% endif %}>{{ label }}</option>
+                      <option value="{{ value }}" {% if (line.satellite_choice or sat_by_line[line.id]) == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                   </select>
                 </label>

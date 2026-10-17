@@ -10,12 +10,15 @@ from data import (
     CARRIER_CHOICES,
     HOUSEHOLDS,
     LINES,
+    MARKET_SOURCES,
     PHONE_CHOICES,
+    PLAN_STATUS_CHOICES,
     PROFILES,
     SATELLITE_CHOICES,
     SERVICES,
     TRAIL,
     build_custom_line,
+    build_situation_profile,
     empty_custom_household,
     line_as_profile,
 )
@@ -30,6 +33,36 @@ DEFAULT_PROFILE = "verizon_pixel"
 DEFAULT_HOUSEHOLD = "chen_family"
 COLORS = {"green": "#1f9d55", "yellow": "#e0a800", "red": "#d64545"}
 MAX_TRAVELERS = 6
+
+
+def _default_situation():
+    return build_situation_profile(
+        phone="iPhone 15",
+        carrier="AT&T",
+        plan_name="Unlimited",
+        plan_status="can_add_tsat",
+        satellite_choice="auto",
+        display_name="You",
+    )
+
+
+def _situation_profile():
+    raw = session.get("situation")
+    if not raw:
+        return None
+    # Rebuild so inference stays current if catalog rules change.
+    return build_situation_profile(
+        phone=raw.get("phone"),
+        carrier=raw.get("carrier"),
+        plan_name=raw.get("plan"),
+        plan_status=raw.get("plan_status", "can_add_tsat"),
+        satellite_choice=raw.get("satellite_choice", "auto"),
+        display_name=raw.get("display_name", "You"),
+        financing_months_left=raw.get("financing_months_left", 0),
+        financing_balance_usd=raw.get("financing_balance_usd", 0),
+        trip_date=raw.get("trip_date", ""),
+        start_time=raw.get("start_time", "09:00"),
+    )
 
 
 def _build_map(coverage):
@@ -61,14 +94,34 @@ def _build_map(coverage):
     return m.get_root().render()
 
 
-def _render(profile_id, notice=None, view="current"):
-    if profile_id not in PROFILES:
-        profile_id = DEFAULT_PROFILE
-    profile = PROFILES[profile_id]
+def _render(profile_id=None, notice=None, view="current", force_demo=False):
+    situation = None if force_demo else _situation_profile()
+    using_situation = situation is not None and not force_demo
+    needs_onboarding = not using_situation and not force_demo
+
+    if using_situation:
+        profile = situation
+        profile_id = "situation"
+    elif force_demo:
+        if profile_id not in PROFILES:
+            profile_id = DEFAULT_PROFILE
+        profile = PROFILES[profile_id]
+    else:
+        # First-open: blank situation so we don't pretend they're a Verizon Pixel.
+        profile = _default_situation()
+        profile["services"] = []
+        profile_id = "situation"
+
+    trip_date = profile.get("trip_date") or ""
+    start_time = profile.get("start_time") or TRAIL.get("start_time")
     rec = get_recommendation(TRAIL, profile)
-    view = view if rec["outcome"] == "add_service" else "current"
+    view = view if (using_situation or force_demo) and rec["outcome"] == "add_service" else "current"
     services = profile["services"] + ["starlink"] if view == "tsat" else None
-    coverage = get_coverage(TRAIL, profile, services=services)
+    coverage = get_coverage(
+        TRAIL, profile, services=services,
+        trip_date=trip_date or None,
+        start_time=start_time,
+    )
     return render_template(
         "index.html",
         trail=TRAIL,
@@ -81,6 +134,14 @@ def _render(profile_id, notice=None, view="current"):
         view=view,
         map_doc=_build_map(coverage),
         notice=notice,
+        using_situation=using_situation,
+        needs_onboarding=needs_onboarding,
+        phone_choices=PHONE_CHOICES,
+        carrier_choices=CARRIER_CHOICES,
+        satellite_choices=SATELLITE_CHOICES,
+        plan_status_choices=PLAN_STATUS_CHOICES,
+        market_sources=MARKET_SOURCES,
+        start_time_value=start_time_for_input(start_time, "09:00"),
     )
 
 
@@ -99,16 +160,18 @@ def _parse_custom_form(form):
     balances = form.getlist("financing_balance_usd")
     n = max(len(names), len(phones), 1)
     lines = []
+    plan_statuses = form.getlist("plan_status")
     for i in range(min(n, MAX_TRAVELERS)):
         lines.append(build_custom_line(
             i,
             names[i] if i < len(names) else "",
-            phones[i] if i < len(phones) else PHONE_CHOICES[2],
-            carriers[i] if i < len(carriers) else CARRIER_CHOICES[0],
+            phones[i] if i < len(phones) else "iPhone 15",
+            carriers[i] if i < len(carriers) else "Other / not listed",
             plans[i] if i < len(plans) else "My plan",
-            sats[i] if i < len(sats) else "none",
+            sats[i] if i < len(sats) else "auto",
             months[i] if i < len(months) else 0,
             balances[i] if i < len(balances) else 0,
+            plan_statuses[i] if i < len(plan_statuses) else "can_add_tsat",
         ))
     if not lines:
         return empty_custom_household(trip_month, trip_date, start_time)
@@ -218,20 +281,81 @@ def _render_household(mode, household_id=None, view="current", traveler=None, no
         sat_by_line=sat_by_line,
         max_travelers=MAX_TRAVELERS,
         start_time_value=start_time_for_input(hh.get("start_time"), "09:00"),
+        plan_status_choices=PLAN_STATUS_CHOICES,
     )
 
 
 @app.get("/")
 def index():
-    return _render(request.args.get("profile", DEFAULT_PROFILE), view=request.args.get("view", "current"))
+    demo = request.args.get("demo")
+    if demo:
+        return _render(demo, view=request.args.get("view", "current"), force_demo=True)
+    # First visit: show onboarding until they save a situation.
+    if _situation_profile() is None and not request.args.get("view"):
+        return _render(notice=None, view="current")
+    return _render(view=request.args.get("view", "current"))
+
+
+@app.post("/setup")
+def setup():
+    """Save the user's real situation (any carrier/plan) into the session."""
+    phone = (request.form.get("phone") or "").strip()
+    if phone.startswith("Other"):
+        phone = (request.form.get("phone_other") or phone).strip()
+    carrier = (request.form.get("carrier") or "").strip()
+    if carrier.startswith("Other"):
+        carrier = (request.form.get("carrier_other") or carrier).strip()
+
+    profile = build_situation_profile(
+        phone=phone,
+        carrier=carrier,
+        plan_name=request.form.get("plan"),
+        plan_status=request.form.get("plan_status") or "can_add_tsat",
+        satellite_choice=request.form.get("satellite") or "auto",
+        display_name=request.form.get("display_name") or "You",
+        financing_months_left=request.form.get("financing_months_left") or 0,
+        financing_balance_usd=request.form.get("financing_balance_usd") or 0,
+        trip_date=request.form.get("trip_date") or "",
+        start_time=start_time_for_input(request.form.get("start_time"), "09:00"),
+    )
+    session["situation"] = {
+        "phone": profile["phone"],
+        "carrier": profile["carrier"],
+        "plan": profile["plan"],
+        "plan_status": profile["plan_status"],
+        "satellite_choice": profile["satellite_choice"],
+        "display_name": profile["display_name"],
+        "financing_months_left": profile["financing_months_left"],
+        "financing_balance_usd": profile["financing_balance_usd"],
+        "trip_date": profile["trip_date"],
+        "start_time": profile["start_time"],
+    }
+    return redirect(url_for("index"))
+
+
+@app.post("/setup/clear")
+def setup_clear():
+    session.pop("situation", None)
+    return redirect(url_for("index"))
 
 
 @app.post("/share")
 def share():
-    profile_id = request.form.get("profile", DEFAULT_PROFILE)
     contact = request.form.get("contact", "").strip()
-    profile = PROFILES.get(profile_id, PROFILES[DEFAULT_PROFILE])
-    share_plan(contact, TRAIL, get_coverage(TRAIL, profile))
+    situation = _situation_profile()
+    if situation:
+        profile = situation
+        profile_id = "situation"
+        coverage = get_coverage(
+            TRAIL, profile,
+            trip_date=profile.get("trip_date") or None,
+            start_time=profile.get("start_time"),
+        )
+    else:
+        profile_id = request.form.get("profile", DEFAULT_PROFILE)
+        profile = PROFILES.get(profile_id, PROFILES[DEFAULT_PROFILE])
+        coverage = get_coverage(TRAIL, profile)
+    share_plan(contact, TRAIL, coverage, hiker=profile.get("display_name", "Sam"))
     return _render(profile_id, notice=f"Plan sent to {contact} (fake)")
 
 
@@ -240,7 +364,7 @@ def missed():
     if request.is_json:
         return {"alert": simulate_missed((request.get_json(silent=True) or {}).get("contact", ""))}
     alert = simulate_missed(request.form.get("contact", ""))
-    return _render(request.form.get("profile", DEFAULT_PROFILE), notice=f"Alert drafted (fake, not sent):\n{alert}")
+    return _render(request.form.get("profile"), notice=f"Alert drafted (fake, not sent):\n{alert}")
 
 
 @app.post("/webhook/photon")
@@ -289,7 +413,8 @@ def household_save():
 
     if action == "add" and len(hh["lines"]) < MAX_TRAVELERS:
         hh["lines"].append(build_custom_line(
-            len(hh["lines"]), "", "Pixel 9", "Verizon", "My plan", "skylo",
+            len(hh["lines"]), "", "Pixel 9", "Verizon", "My plan", "auto",
+            plan_status="can_add_tsat",
         ))
         hh["summary"] = f"{len(hh['lines'])} travelers you entered."
     elif action == "remove":
@@ -304,9 +429,10 @@ def household_save():
                 build_custom_line(
                     i, line["display_name"], line["phone"], line["carrier"],
                     line.get("plan", "My plan"),
-                    (line.get("services") or ["none"])[0] if line.get("services") else "none",
+                    line.get("satellite_choice") or "auto",
                     line.get("financing_months_left", 0),
                     line.get("financing_balance_usd", 0),
+                    line.get("plan_status", "can_add_tsat"),
                 )
                 for i, line in enumerate(hh["lines"])
             ]

@@ -44,12 +44,16 @@ def get_recommendation(trail, profile):
     services = profile["services"]
     phone = profile["phone"]
     tsat_ok = profile.get("tsat_compatible", is_tsat_compatible(phone))
+    if profile.get("plan_status") == "cannot_add":
+        tsat_ok = False
     tsat_cost = SERVICES["starlink"]["cost"]
     rec = {
         "as_of": CATALOG_AS_OF,
         "source_url": PRICE_SOURCE_URL,
         "current_covered": covered,
         "total": total,
+        "situation_summary": profile.get("summary") or f"{phone} · {profile.get('carrier', '')}",
+        "inferred": bool(profile.get("inferred")),
     }
 
     if services and covered == total:

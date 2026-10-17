@@ -36,8 +36,19 @@
 
     .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
     .eyebrow { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
-    select, input[type=tel] { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid #cfd5dc; border-radius: 8px; background: #fff; color: var(--ink); }
+    select, input[type=tel], input[type=text], input[type=date], input[type=time], input[type=number] {
+      width: 100%; font: inherit; padding: 9px 12px; border: 1px solid #cfd5dc; border-radius: 8px; background: #fff; color: var(--ink);
+    }
     .meta { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+    .fields { display: grid; gap: 8px; margin-top: 8px; }
+    .fields.two { grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (max-width: 520px) { .fields.two { grid-template-columns: 1fr; } }
+    label.field { display: grid; gap: 4px; font-size: .78rem; font-weight: 650; color: var(--muted); }
+    .hint { font-size: .78rem; color: var(--muted); margin: 4px 0 0; font-weight: 400; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    button.secondary { background: #fff; color: var(--navy); border: 1px solid #cfd5dc; }
+    .onboard { border: 1px solid #cfe0ff; background: #f7faff; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+    .onboard p { margin: 0; font-size: .92rem; }
 
     .rec { margin-top: 16px; border-radius: 10px; padding: 16px; border-left: 4px solid; }
     .rec.covered { background: var(--green-bg); border-color: var(--green); }
@@ -95,64 +106,150 @@
     <div class="brand"><span>✦</span> Starward</div>
     <div class="trip">{{ trail.name }} · starts {{ coverage.start_time }}</div>
     <nav class="modes" aria-label="Planning mode">
-      <a href="/?profile={{ profile_id }}" class="on">One phone</a>
+      <a href="/" class="on">One phone</a>
       <a href="/household?mode=custom">Whole household</a>
     </nav>
   </header>
 
   <main class="grid">
     <section class="setup card">
-      <form method="get" action="/">
-        <p class="eyebrow">1. Your phone</p>
-        <select name="profile" onchange="this.form.submit()" aria-label="Your phone and carrier">
-          {% for pid, p in profiles.items() %}
-            <option value="{{ pid }}" {% if pid == profile_id %}selected{% endif %}>{{ p.name }}</option>
-          {% endfor %}
-        </select>
-        <noscript><button type="submit">Update</button></noscript>
-        <p class="meta">{{ profile.plan }} ·
-          {% if profile.services %}{% for s in profile.services %}{{ services[s].name }}{% endfor %}{% else %}No satellite texting{% endif %}</p>
+      <p class="eyebrow">1. Your situation</p>
+
+      {% if needs_onboarding %}
+        <div class="onboard">
+          <p><strong>Tell us your real setup.</strong> Any carrier or plan — including Mint, Visible, Cricket, Spectrum, or “Other.” We’ll map it to a solution case from public satellite rules.</p>
+        </div>
+      {% endif %}
+
+      <form method="post" action="/setup">
+        <div class="fields">
+          <label class="field">Your name
+            <input type="text" name="display_name" value="{{ profile.display_name if using_situation else 'You' }}" required>
+          </label>
+          <div class="fields two">
+            <label class="field">Phone model
+              <input list="phone-list" name="phone" value="{{ profile.phone if using_situation else '' }}" placeholder="Start typing, e.g. iPhone 15" required>
+              <datalist id="phone-list">
+                {% for phone in phone_choices %}
+                  <option value="{{ phone }}"></option>
+                {% endfor %}
+              </datalist>
+            </label>
+            <label class="field">If “Other”, type exact model
+              <input type="text" name="phone_other" placeholder="e.g. Galaxy A15 5G">
+            </label>
+          </div>
+          <div class="fields two">
+            <label class="field">Carrier
+              <select name="carrier" required>
+                {% for c in carrier_choices %}
+                  <option value="{{ c }}" {% if using_situation and profile.carrier == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">If “Other”, type carrier
+              <input type="text" name="carrier_other" value="{{ profile.carrier if using_situation and profile.carrier not in carrier_choices else '' }}" placeholder="e.g. Consumer Cellular">
+            </label>
+          </div>
+          <label class="field">Plan name (as you know it)
+            <input type="text" name="plan" value="{{ profile.plan if using_situation else '' }}" placeholder="e.g. Experience Beyond, Unlimited Plus, Mint Unlimited">
+          </label>
+          <label class="field">T-Satellite on this plan?
+            <select name="plan_status">
+              {% for pid, label, hint in plan_status_choices %}
+                <option value="{{ pid }}" {% if using_situation and profile.plan_status == pid %}selected{% endif %} title="{{ hint }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <span class="hint">T-Satellite works for non–T-Mobile customers with an unlocked compatible phone (~$10/mo).</span>
+          </label>
+          <label class="field">Satellite texting today
+            <select name="satellite">
+              {% for value, label in satellite_choices %}
+                <option value="{{ value }}" {% if using_situation and profile.satellite_choice == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <div class="fields two">
+            <label class="field">Trip date
+              <input type="date" name="trip_date" value="{{ profile.trip_date if using_situation else '' }}">
+            </label>
+            <label class="field">Start time
+              <input type="time" name="start_time" value="{{ start_time_value }}">
+            </label>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit">See my recommendation</button>
+          {% if using_situation %}
+            <button type="submit" formaction="/setup/clear" class="secondary">Start over</button>
+          {% endif %}
+        </div>
       </form>
 
-      {% set labels = {"covered": "You're covered", "add_service": "One add-on helps", "not_compatible": "No add-on helps"} %}
-      {% set top = rec.options[0] %}
-      <div class="rec {{ rec.outcome }}">
-        <span class="pill">{{ labels[rec.outcome] }}</span>
-        <p class="headline">{{ rec.headline }}</p>
-        <div class="opt"><span class="opt-action">{{ top.action }}</span><span class="cost">{{ top.cost }}</span></div>
-        {% if top.checkins_covered is not none %}
-          <p class="covers"><span class="dots">{% for i in range(top.total) %}<i class="{{ 'on' if i < top.checkins_covered }}"></i>{% endfor %}</span>covers {{ top.checkins_covered }} of {{ top.total }} check-ins</p>
-        {% endif %}
-        <p class="why">{{ top.reason }}</p>
+      {% if using_situation or not needs_onboarding %}
+        <p class="meta" style="margin-top:14px">{{ rec.situation_summary or profile.summary or profile.name }}
+          {% if profile.services %} · {% for s in profile.services %}{{ services[s].name }}{% if not loop.last %}, {% endif %}{% endfor %}
+          {% else %} · no day-to-day satellite texting detected{% endif %}
+          {% if rec.inferred %} · estimated from phone/carrier{% endif %}
+        </p>
 
-        {% if rec.options|length > 1 %}
-          <details>
-            <summary>Other options ({{ rec.options|length - 1 }})</summary>
-            {% for o in rec.options[1:] %}
-              <div class="alt">
-                <div class="opt"><span class="opt-action">{{ o.action }}</span><span class="cost">{{ o.cost }}</span></div>
-                {% if o.checkins_covered is not none %}
-                  <p class="covers"><span class="dots">{% for i in range(o.total) %}<i class="{{ 'on' if i < o.checkins_covered }}"></i>{% endfor %}</span>covers {{ o.checkins_covered }} of {{ o.total }}</p>
-                {% endif %}
-                <p class="why">{{ o.reason }}</p>
-              </div>
-            {% endfor %}
-          </details>
-        {% endif %}
-        <p class="fine">Prices as of {{ rec.as_of }}{% if rec.source_url %} · <a href="{{ rec.source_url }}" target="_blank" rel="noopener">source</a>{% endif %}. Coverage is an estimate, not a guarantee.</p>
-      </div>
+        {% set labels = {"covered": "You're covered", "add_service": "One add-on helps", "not_compatible": "No add-on helps"} %}
+        {% set top = rec.options[0] %}
+        <div class="rec {{ rec.outcome }}">
+          <span class="pill">{{ labels[rec.outcome] }}</span>
+          <p class="headline">{{ rec.headline }}</p>
+          <div class="opt"><span class="opt-action">{{ top.action }}</span><span class="cost">{{ top.cost }}</span></div>
+          {% if top.checkins_covered is not none %}
+            <p class="covers"><span class="dots">{% for i in range(top.total) %}<i class="{{ 'on' if i < top.checkins_covered }}"></i>{% endfor %}</span>covers {{ top.checkins_covered }} of {{ top.total }} check-ins</p>
+          {% endif %}
+          <p class="why">{{ top.reason }}</p>
+
+          {% if rec.options|length > 1 %}
+            <details>
+              <summary>Other options ({{ rec.options|length - 1 }})</summary>
+              {% for o in rec.options[1:] %}
+                <div class="alt">
+                  <div class="opt"><span class="opt-action">{{ o.action }}</span><span class="cost">{{ o.cost }}</span></div>
+                  {% if o.checkins_covered is not none %}
+                    <p class="covers"><span class="dots">{% for i in range(o.total) %}<i class="{{ 'on' if i < o.checkins_covered }}"></i>{% endfor %}</span>covers {{ o.checkins_covered }} of {{ o.total }}</p>
+                  {% endif %}
+                  <p class="why">{{ o.reason }}</p>
+                </div>
+              {% endfor %}
+            </details>
+          {% endif %}
+          <p class="fine">Prices as of {{ rec.as_of }}{% if rec.source_url %} · <a href="{{ rec.source_url }}" target="_blank" rel="noopener">source</a>{% endif %}. Coverage is an estimate, not a guarantee.</p>
+        </div>
+      {% endif %}
+
+      <details style="margin-top:14px">
+        <summary>Pitch demos (fake presets)</summary>
+        <p class="meta">Only for judging demos — not how real users start.</p>
+        <p class="meta">
+          {% for pid, p in profiles.items() %}
+            <a href="/?demo={{ pid }}">{{ p.name }}</a>{% if not loop.last %} · {% endif %}
+          {% endfor %}
+        </p>
+      </details>
     </section>
 
     <section class="mapcol">
       <div class="card mapcard">
         <iframe class="map" title="Trail coverage map" srcdoc="{{ map_doc }}"></iframe>
-        {% if rec.outcome == "add_service" %}
+        {% if using_situation and rec.outcome == "add_service" %}
           <div class="maptools">
             <nav class="seg" aria-label="Map view">
-              <a href="/?profile={{ profile_id }}" class="{{ 'on' if view == 'current' }}">Your setup <b>{{ rec.current_covered }}/{{ rec.total }}</b></a>
-              <a href="/?profile={{ profile_id }}&amp;view=tsat" class="{{ 'on' if view == 'tsat' }}">+ T-Satellite <b>{{ rec.best_covered }}/{{ rec.total }}</b></a>
+              <a href="/" class="{{ 'on' if view == 'current' }}">Your setup <b>{{ rec.current_covered }}/{{ rec.total }}</b></a>
+              <a href="/?view=tsat" class="{{ 'on' if view == 'tsat' }}">+ T-Satellite <b>{{ rec.best_covered }}/{{ rec.total }}</b></a>
             </nav>
             {% if view == "tsat" %}<div class="preview-note">Preview only. Your plan uses your current setup until you add it.</div>{% endif %}
+          </div>
+        {% elif not using_situation and rec.outcome == "add_service" %}
+          <div class="maptools">
+            <nav class="seg" aria-label="Map view">
+              <a href="/?demo={{ profile_id }}" class="{{ 'on' if view == 'current' }}">Your setup <b>{{ rec.current_covered }}/{{ rec.total }}</b></a>
+              <a href="/?demo={{ profile_id }}&amp;view=tsat" class="{{ 'on' if view == 'tsat' }}">+ T-Satellite <b>{{ rec.best_covered }}/{{ rec.total }}</b></a>
+            </nav>
           </div>
         {% endif %}
         <div class="legend">
