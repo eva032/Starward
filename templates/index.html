@@ -3,29 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Starward · {{ trail.name }}</title>
+  <title>Starward{% if show_plan %} · {{ trail.name }}{% endif %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f4f5f7; --card: #fff; --ink: #18212b; --muted: #5d6874; --line: #e3e6ea;
-      --navy: #142038; --accent: #3b5bdb;
-      --green: #1f9d55; --green-bg: #e8f6ee; --yellow: #e0a800; --yellow-bg: #fff7dd;
+      --bg: #eef2f0; --card: #fff; --ink: #18212b; --muted: #5d6874; --line: #d8ddd8;
+      --navy: #0f2a24; --accent: #1b6b5a; --accent-soft: #d7ebe4;
+      --green: #1f9d55; --green-bg: #e8f6ee; --yellow: #c49200; --yellow-bg: #fff7dd;
       --red: #d64545; --gray: #6b7480; --gray-bg: #eef0f3;
+      --demo: #7a4b00; --demo-bg: #fff3d6; --demo-border: #e0b84a;
       --radius: 12px; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+      --font: "DM Sans", system-ui, sans-serif;
+      --display: "Fraunces", Georgia, serif;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    body {
+      margin: 0; background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, #cfe3dc 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, #d9e4f0 0%, transparent 50%),
+        var(--bg);
+      color: var(--ink); font: 15px/1.5 var(--font);
+      min-height: 100vh;
+    }
     a { color: var(--accent); }
 
-    .top { background: var(--navy); color: #fff; padding: 14px 24px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-    .brand { font-weight: 800; font-size: 1.2rem; letter-spacing: .2px; }
-    .brand span { color: #ffd166; }
-    .trip { color: #b9c3d6; font-size: .92rem; }
+    .top {
+      background: linear-gradient(120deg, #0f2a24 0%, #163d34 55%, #1a4a3e 100%);
+      color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .brand { font-family: var(--display); font-weight: 700; font-size: 1.45rem; letter-spacing: .01em; }
+    .brand span { color: #9fd6c4; }
+    .trip { color: #b7cfc6; font-size: .92rem; flex: 1; min-width: 180px; }
+    .demo-badge {
+      background: var(--demo-bg); color: var(--demo); border: 1px solid var(--demo-border);
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      padding: 5px 10px; border-radius: 6px; white-space: nowrap;
+    }
+
+    .demo-banner {
+      background: var(--demo-bg); color: var(--demo); border-bottom: 1px solid var(--demo-border);
+      padding: 8px 24px; font-size: .88rem; text-align: center;
+    }
 
     .grid { max-width: 1240px; margin: 0 auto; padding: 20px 24px 40px; display: grid; gap: 20px;
             grid-template-columns: minmax(340px, 420px) 1fr;
             grid-template-areas: "setup map" "checkins map" "share map"; grid-template-rows: auto auto 1fr; }
     .setup { grid-area: setup; } .checkins { grid-area: checkins; } .share { grid-area: share; }
     .mapcol { grid-area: map; position: sticky; top: 20px; align-self: start; }
+    .grid.preplan { grid-template-columns: minmax(0, 560px); grid-template-areas: "setup"; justify-content: center; }
     @media (max-width: 900px) {
       .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "setup" "map" "checkins" "share"; padding: 16px; }
       .mapcol { position: static; }
@@ -33,15 +60,63 @@
 
     .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
     .eyebrow { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
-    select, input[type=tel] { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid #cfd5dc; border-radius: 8px; background: #fff; color: var(--ink); }
+    .lead { margin: 0 0 14px; color: var(--muted); font-size: .95rem; }
+    h1 { font-family: var(--display); font-size: 1.55rem; font-weight: 700; margin: 0 0 6px; line-height: 1.2; }
+
+    label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); margin: 0 0 4px; }
+    .field { margin-bottom: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+    select, input[type=tel], input[type=text], input[type=search], input[type=date], input[type=time] {
+      width: 100%; font: inherit; padding: 9px 12px; border: 1px solid #cfd5dc; border-radius: 8px;
+      background: #fff; color: var(--ink);
+    }
     .meta { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
 
     .rec { margin-top: 16px; border-radius: 10px; padding: 16px; border-left: 4px solid; }
     .rec.covered { background: var(--green-bg); border-color: var(--green); }
     .rec.add_service { background: var(--yellow-bg); border-color: var(--yellow); }
     .rec.not_compatible { background: var(--gray-bg); border-color: var(--gray); }
+    .rec.unknown { background: #eef3f8; border-color: #5b7c99; }
     .pill { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; color: #fff; }
-    .covered .pill { background: var(--green); } .add_service .pill { background: #b88a00; } .not_compatible .pill { background: var(--gray); }
+    .covered .pill { background: var(--green); } .add_service .pill { background: #b88a00; }
+    .not_compatible .pill { background: var(--gray); } .unknown .pill { background: #5b7c99; }
+    .compat {
+      margin-top: 12px; padding: 12px; border-radius: 8px; background: #f3f7f5; border: 1px solid var(--line);
+      font-size: .88rem;
+    }
+    .compat.unknown, .compat.sos_only, .compat.unsupported { background: #eef3f8; }
+    .compat.verified, .compat.supported { background: var(--green-bg); }
+    .compat.needs_activation, .compat.conditional { background: var(--yellow-bg); }
+    .compat h3 { margin: 0 0 6px; font-size: .95rem; }
+    .compat ul { margin: 8px 0 0; padding-left: 1.1rem; }
+    .compat li { margin: 4px 0; }
+    .compat a { word-break: break-word; }
+    .hint { font-size: .8rem; color: var(--muted); margin: 4px 0 0; }
+    .activation { margin-top: 4px; }
+    .activation label.choice { display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--ink); margin: 6px 0; }
+    .phone-picker { position: relative; }
+    .phone-picker input[type=search] { margin: 0; }
+    .phone-list {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5;
+      max-height: 360px; overflow-x: hidden; overflow-y: auto; margin: 0; padding: 4px 0; list-style: none;
+      background: #fff; border: 1px solid #cfd5dc; border-radius: 8px; box-shadow: var(--shadow);
+      -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
+    }
+    .phone-list[hidden] { display: none; }
+    .phone-list li { margin: 0; }
+    .phone-list .phone-group {
+      position: sticky; top: 0; z-index: 1;
+      padding: 8px 12px 4px; font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--muted); background: #fff;
+      border-bottom: 1px solid #eef1f4;
+    }
+    .phone-list button {
+      display: block; width: 100%; text-align: left; background: none; color: var(--ink);
+      border: 0; border-radius: 0; font-weight: 500; padding: 9px 12px; white-space: normal;
+    }
+    .phone-list button:hover, .phone-list button[aria-selected="true"] { background: var(--accent-soft); }
+    .phone-list .empty { padding: 10px 12px; color: var(--muted); font-size: .88rem; }
     .headline { font-size: 1.15rem; font-weight: 700; margin: 8px 0 12px; line-height: 1.3; }
     .opt { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
     .opt-action { font-weight: 600; }
@@ -66,11 +141,18 @@
     .ck-time { font-weight: 600; font-variant-numeric: tabular-nums; }
     .start { color: var(--muted); font-size: .85rem; margin: 0 0 4px; }
 
-    .share form { display: flex; gap: 8px; margin: 0; }
-    .share form + form { margin-top: 10px; }
-    button { font: inherit; font-weight: 600; padding: 9px 14px; border-radius: 8px; border: 0; background: var(--navy); color: #fff; cursor: pointer; white-space: nowrap; }
+    .shareform { display: flex; gap: 8px; margin: 0; }
+    .shareform + form { margin-top: 10px; }
+    button, .btn {
+      font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 8px; border: 0;
+      background: var(--navy); color: #fff; cursor: pointer; white-space: nowrap;
+    }
+    button.primary { width: 100%; margin-top: 4px; background: var(--accent); }
+    button.primary:hover { filter: brightness(1.08); }
     button.link { background: none; color: var(--accent); padding: 0; font-weight: 500; font-size: .88rem; }
     .notice { background: #e8eefc; border: 1px solid #b7c6f3; padding: 10px 12px; border-radius: 8px; white-space: pre-line; font-size: .88rem; margin: 12px 0 0; }
+    .errors { background: #fdecea; border: 1px solid #f5c2c0; color: #8a1f1b; padding: 10px 12px; border-radius: 8px; margin: 0 0 12px; font-size: .88rem; }
+    .errors ul { margin: 0; padding-left: 1.1rem; }
 
     .mapcard { padding: 0; overflow: hidden; position: relative; }
     .map { display: block; width: 100%; height: min(78vh, 720px); border: 0; }
@@ -85,36 +167,155 @@
     .legend div { display: flex; align-items: center; gap: 6px; }
     .sw { width: 16px; height: 5px; border-radius: 3px; display: inline-block; }
     .conf { color: var(--muted); margin-top: 4px; }
+    .empty-map {
+      min-height: 280px; display: flex; align-items: center; justify-content: center;
+      padding: 32px; text-align: center; color: var(--muted); background:
+        linear-gradient(160deg, #f3f7f5, #e8efe9);
+    }
   </style>
 </head>
 <body>
   <header class="top">
     <div class="brand"><span>✦</span> Starward</div>
-    <div class="trip">{{ trail.name }} · starts {{ coverage.start_time }} · {{ coverage.checkins|length }} check-ins</div>
+    <div class="trip">
+      {% if show_plan %}
+        {{ trail.name }} · {{ form.trip_date }} · starts {{ coverage.start_time }} · {{ coverage.checkins|length }} check-ins (estimates)
+      {% else %}
+        Plan satellite check-ins before you hike
+      {% endif %}
+    </div>
+    {% if fake_mode %}<span class="demo-badge" title="Trail coverage is simulated; SMS is not sent until Photon delivery is wired">Demo Mode</span>{% endif %}
   </header>
 
-  <main class="grid">
+  {% if fake_mode %}
+  <div class="demo-banner">
+    Demo Mode: trail coverage uses simulated terrain. Compatibility notes cite official sources when shown. No real SMS is sent until Photon delivery is wired.
+  </div>
+  {% endif %}
+
+  <main class="grid{% if not show_plan %} preplan{% endif %}">
     <section class="setup card">
-      <form method="get" action="/">
-        <p class="eyebrow">Your phone &amp; carrier</p>
-        <select name="profile" onchange="this.form.submit()" aria-label="Your phone and carrier">
-          {% for pid, p in profiles.items() %}
-            <option value="{{ pid }}" {% if pid == profile_id %}selected{% endif %}>{{ p.name }}</option>
-          {% endfor %}
-        </select>
-        <noscript><button type="submit">Update</button></noscript>
+      <p class="eyebrow">Trip planning</p>
+      <h1>{% if show_plan %}Your setup{% else %}Plan your hike{% endif %}</h1>
+      <p class="lead">Pick a trail, phone, and contact. We’ll estimate where satellite texting may work — never a guarantee.</p>
+
+      {% if errors %}
+        <div class="errors" role="alert">
+          <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+      {% endif %}
+
+      <form method="post" action="/plan">
+        <div class="field">
+          <label for="trail_id">Trail</label>
+          <select name="trail_id" id="trail_id" required>
+            {% for tid, t in trails.items() %}
+              <option value="{{ tid }}" {% if tid == form.trail_id %}selected{% endif %}>{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="trip_date">Trip date</label>
+            <input type="date" name="trip_date" id="trip_date" value="{{ form.trip_date }}" required>
+          </div>
+          <div class="field">
+            <label for="start_time">Start time</label>
+            <input type="time" name="start_time" id="start_time" value="{{ form.start_time }}" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="hiker_name">Hiker name</label>
+          <input type="text" name="hiker_name" id="hiker_name" value="{{ form.hiker_name }}" placeholder="Name on the trail" required autocomplete="name">
+        </div>
+
+        <div class="field">
+          <label for="hiker_number">Hiker phone</label>
+          <input type="tel" name="hiker_number" id="hiker_number" value="{{ form.hiker_number }}" placeholder="+1 555 111 2222" required autocomplete="tel">
+        </div>
+
+        <div class="field">
+          <label for="phone_search">What phone do you have?</label>
+          <div class="phone-picker" id="phone_picker">
+            <input type="hidden" name="phone_id" id="phone_id" value="{{ form.phone_id }}" required>
+            <input type="hidden" name="manufacturer" id="manufacturer" value="{{ form.manufacturer }}">
+            <input type="search" id="phone_search" value="{{ form.phone_label }}"
+                   placeholder="Browse or type, e.g. Pixel 9 or Galaxy S25"
+                   autocomplete="off" autocapitalize="off" spellcheck="false"
+                   role="combobox" aria-expanded="false" aria-controls="phone_results"
+                   aria-autocomplete="list" aria-haspopup="listbox">
+            <ul class="phone-list" id="phone_results" role="listbox" hidden></ul>
+          </div>
+          <p class="hint">Browse all models or type to filter. Choose “I can’t find my phone” if yours isn’t listed.</p>
+        </div>
+
+        <div class="field">
+          <label for="carrier">Wireless carrier</label>
+          <select name="carrier" id="carrier" required>
+            {% for c in carriers %}
+              <option value="{{ c }}" {% if c == form.carrier %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field activation" id="activation_field" {% if not ask_activation %}hidden{% endif %}>
+          <label>Do you already have {{ activation_label_text }} activated?</label>
+          <div class="activation">
+            <label class="choice"><input type="radio" name="satellite_activated" value="yes" {% if form.satellite_activated == 'yes' %}checked{% endif %}> Yes</label>
+            <label class="choice"><input type="radio" name="satellite_activated" value="no" {% if form.satellite_activated == 'no' %}checked{% endif %}> No</label>
+            <label class="choice"><input type="radio" name="satellite_activated" value="unsure" {% if form.satellite_activated == 'unsure' %}checked{% endif %}> Not sure</label>
+          </div>
+          <p class="hint">We’ll only recommend an add-on when eligibility and benefit are verified.</p>
+        </div>
+
+        <div class="field">
+          <label for="contact">Emergency contact phone</label>
+          <input type="tel" name="contact" id="contact" value="{{ form.contact }}" placeholder="+1 555 123 4567" autocomplete="tel">
+        </div>
+
         <p class="meta">{{ profile.plan }} ·
-          {% if profile.services %}{% for s in profile.services %}{{ services[s].name }}{% endfor %}{% else %}No satellite texting{% endif %}</p>
+          {% if profile.services %}{% for s in profile.services %}{% if s in services %}{{ services[s].name }}{% else %}{{ s }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}No active ordinary satellite SMS assumed{% endif %}
+        </p>
+
+        <button type="submit" class="primary">{% if show_plan %}Update trip plan{% else %}Generate trip plan{% endif %}</button>
       </form>
 
-      {% set labels = {"covered": "You're covered", "add_service": "One add-on helps", "not_compatible": "No add-on helps"} %}
+      {% if show_plan %}
+      <div class="compat {{ setup.status }}">
+        <h3>{{ setup.status_label }}</h3>
+        {% if setup.notes %}
+          <p class="why">{% for n in setup.notes %}{{ n }}{% if not loop.last %} {% endif %}{% endfor %}</p>
+        {% endif %}
+        {% if setup.sources %}
+          <details open>
+            <summary>Official sources</summary>
+            <ul>
+              {% for s in setup.sources %}
+                <li><a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.label }}</a>
+                  <span class="hint"> · verified {{ s.verified_as_of }} · {{ s.functionality }} · {{ s.status }}</span></li>
+              {% endfor %}
+            </ul>
+          </details>
+        {% else %}
+          <p class="hint">No matching official record in our catalog for this combination.</p>
+        {% endif %}
+      </div>
+
+      {% set labels = {
+        "covered": "Good chance (estimate)",
+        "add_service": "Add-on may help (estimate)",
+        "not_compatible": "No verified add-on",
+        "unknown": "Confirm eligibility"
+      } %}
       {% set top = rec.options[0] %}
       <div class="rec {{ rec.outcome }}">
-        <span class="pill">{{ labels[rec.outcome] }}</span>
+        <span class="pill">{{ labels.get(rec.outcome, rec.outcome) }}</span>
         <p class="headline">{{ rec.headline }}</p>
         <div class="opt"><span class="opt-action">{{ top.action }}</span><span class="cost">{{ top.cost }}</span></div>
         {% if top.checkins_covered is not none %}
-          <p class="covers"><span class="dots">{% for i in range(top.total) %}<i class="{{ 'on' if i < top.checkins_covered }}"></i>{% endfor %}</span>covers {{ top.checkins_covered }} of {{ top.total }} check-ins</p>
+          <p class="covers"><span class="dots">{% for i in range(top.total) %}<i class="{{ 'on' if i < top.checkins_covered }}"></i>{% endfor %}</span>estimated chance at {{ top.checkins_covered }} of {{ top.total }} check-ins — not guaranteed</p>
         {% endif %}
         <p class="why">{{ top.reason }}</p>
 
@@ -125,69 +326,284 @@
               <div class="alt">
                 <div class="opt"><span class="opt-action">{{ o.action }}</span><span class="cost">{{ o.cost }}</span></div>
                 {% if o.checkins_covered is not none %}
-                  <p class="covers"><span class="dots">{% for i in range(o.total) %}<i class="{{ 'on' if i < o.checkins_covered }}"></i>{% endfor %}</span>covers {{ o.checkins_covered }} of {{ o.total }}</p>
+                  <p class="covers"><span class="dots">{% for i in range(o.total) %}<i class="{{ 'on' if i < o.checkins_covered }}"></i>{% endfor %}</span>estimated chance at {{ o.checkins_covered }} of {{ o.total }} — not guaranteed</p>
                 {% endif %}
                 <p class="why">{{ o.reason }}</p>
               </div>
             {% endfor %}
           </details>
         {% endif %}
-        <p class="fine">Prices as of {{ rec.as_of }}. Coverage is an estimate, not a guarantee.</p>
+        <p class="fine">Compatibility catalog as of {{ setup.as_of }}; service catalog as of {{ rec.as_of }}. Map colors are demo coverage from simulated terrain — not live satellite or network proof. Starward never recommends buying a new phone. Emergency SOS alone is not enough for check-in SMS.</p>
       </div>
+      {% endif %}
     </section>
 
+    {% if show_plan %}
     <section class="mapcol">
       <div class="card mapcard">
-        <iframe class="map" title="Trail coverage map" srcdoc="{{ map_doc }}"></iframe>
+        <iframe class="map" title="Demo trail coverage map (simulated)" srcdoc="{{ map_doc }}"></iframe>
         {% if rec.outcome == "add_service" %}
           <div class="maptools">
             <nav class="seg" aria-label="Map view">
-              <a href="/?profile={{ profile_id }}" class="{{ 'on' if view == 'current' }}">Your setup <b>{{ rec.current_covered }}/{{ rec.total }}</b></a>
-              <a href="/?profile={{ profile_id }}&amp;view=tsat" class="{{ 'on' if view == 'tsat' }}">+ T-Satellite <b>{{ rec.best_covered }}/{{ rec.total }}</b></a>
+              <a href="/?view=current" class="{{ 'on' if view == 'current' }}">Your setup <b>{{ rec.current_covered }}/{{ rec.total }}</b></a>
+              <a href="/?view=tsat" class="{{ 'on' if view == 'tsat' }}">+ T-Satellite <b>{{ rec.best_covered }}/{{ rec.total }}</b></a>
             </nav>
             {% if view == "tsat" %}<div class="preview-note">Preview only. Your plan uses your current setup until you add it.</div>{% endif %}
           </div>
         {% endif %}
         <div class="legend">
-          <div><span class="sw" style="background:var(--green)"></span>Good chance</div>
-          <div><span class="sw" style="background:var(--yellow)"></span>Some chance</div>
-          <div><span class="sw" style="background:var(--red)"></span>Unlikely</div>
-          <div class="conf">Confidence: {{ coverage.confidence }}<br>{{ coverage.confidence_note }}</div>
+          <div><span class="sw" style="background:var(--green)"></span>Est. good chance</div>
+          <div><span class="sw" style="background:var(--yellow)"></span>Est. some chance</div>
+          <div><span class="sw" style="background:var(--red)"></span>Est. unlikely</div>
+          <div class="conf">Demo coverage based on simulated terrain data<br>Confidence: {{ coverage.confidence }} · {{ coverage.confidence_note }}</div>
         </div>
       </div>
     </section>
 
     <section class="checkins card">
-      <p class="eyebrow">Check-in plan{% if view == "tsat" %} · with T-Satellite{% endif %}</p>
-      <p class="start">Start at the trailhead around {{ coverage.start_time }}</p>
+      <p class="eyebrow">Check-in plan{% if view == "tsat" %} · with T-Satellite{% endif %} · estimated opportunities</p>
+      <p class="start">{{ form.hiker_name }} · {{ trail.name }} · {{ form.trip_date }} · trailhead around {{ coverage.start_time }}</p>
       <ol class="timeline">
         {% for c in coverage.checkins %}
           <li>
             <span class="num {{ c.color }}">{{ loop.index }}</span>
             <div>
               <div class="ck-name">{{ c.name.split(': ', 1)[-1] }}</div>
-              <div class="ck-win">{% if c.windows %}Best chance {{ c.windows|join(', ') }}{% else %}Low chance of signal here{% endif %}</div>
+              <div class="ck-win">{% if c.windows %}Estimated window {{ c.windows|join(', ') }} (simulated){% else %}Low estimated chance here{% endif %}</div>
             </div>
             <span class="ck-time">{{ c.time }}</span>
           </li>
         {% endfor %}
       </ol>
+      <p class="fine">On the trail, text <strong>OK</strong> to the Starward number at each spot. Times and windows are simulated estimates — not live satellite passes.</p>
     </section>
 
     <section class="share card">
       <p class="eyebrow">Share your plan</p>
-      <form method="post" action="/share">
-        <input type="hidden" name="profile" value="{{ profile_id }}">
-        <input type="tel" name="contact" placeholder="Emergency contact, e.g. +1 555 123 4567" aria-label="Emergency contact phone" required>
-        <button type="submit">Share</button>
+      <p class="lead" style="margin-bottom:10px">Preview the check-in plan for your emergency contact. Alerts go to them only — never to emergency services automatically. Until Photon delivery is wired, nothing is sent by SMS.</p>
+      <form class="shareform" method="post" action="/share">
+        <input type="hidden" name="trail_id" value="{{ form.trail_id }}">
+        <input type="hidden" name="trip_date" value="{{ form.trip_date }}">
+        <input type="hidden" name="start_time" value="{{ form.start_time }}">
+        <input type="hidden" name="hiker_name" value="{{ form.hiker_name }}">
+        <input type="hidden" name="hiker_number" value="{{ form.hiker_number }}">
+        <input type="hidden" name="manufacturer" value="{{ form.manufacturer }}">
+        <input type="hidden" name="phone_id" value="{{ form.phone_id }}">
+        <input type="hidden" name="phone" value="{{ form.phone }}">
+        <input type="hidden" name="carrier" value="{{ form.carrier }}">
+        <input type="hidden" name="satellite_activated" value="{{ form.satellite_activated }}">
+        <input type="tel" name="contact" value="{{ form.contact }}" placeholder="Emergency contact phone" aria-label="Emergency contact phone" required>
+        <button type="submit">Share plan</button>
       </form>
       <form method="post" action="/simulate/missed">
-        <input type="hidden" name="profile" value="{{ profile_id }}">
+        <input type="hidden" name="trail_id" value="{{ form.trail_id }}">
+        <input type="hidden" name="trip_date" value="{{ form.trip_date }}">
+        <input type="hidden" name="start_time" value="{{ form.start_time }}">
+        <input type="hidden" name="hiker_name" value="{{ form.hiker_name }}">
+        <input type="hidden" name="hiker_number" value="{{ form.hiker_number }}">
+        <input type="hidden" name="manufacturer" value="{{ form.manufacturer }}">
+        <input type="hidden" name="phone_id" value="{{ form.phone_id }}">
+        <input type="hidden" name="phone" value="{{ form.phone }}">
+        <input type="hidden" name="carrier" value="{{ form.carrier }}">
+        <input type="hidden" name="satellite_activated" value="{{ form.satellite_activated }}">
+        <input type="hidden" name="contact" value="{{ form.contact }}">
         <button type="submit" class="link">Preview a missed check-in alert</button>
       </form>
       {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
-      <p class="fine">Alerts go to your contact only. Starward never contacts emergency services for you.</p>
+      <p class="fine">
+        Message preview only — no SMS sent until Track D wires Photon delivery.
+        Starward never contacts emergency services for you.
+      </p>
     </section>
+    {% endif %}
   </main>
+
+  <script id="phones-data" type="application/json">{{ phones_json|safe }}</script>
+  <script>
+  (function () {
+    const phones = JSON.parse(document.getElementById("phones-data").textContent);
+    const phoneId = document.getElementById("phone_id");
+    const manufacturer = document.getElementById("manufacturer");
+    const search = document.getElementById("phone_search");
+    const list = document.getElementById("phone_results");
+    const carrier = document.getElementById("carrier");
+    const activation = document.getElementById("activation_field");
+    const OTHER = { id: "other_phone", label: "I can't find my phone", manufacturer: "Other", name: "Other / not listed" };
+    const GROUP_ORDER = ["Apple", "Samsung", "Google", "Other"];
+
+    const needsActivation = {
+      "T-Mobile": new Set([
+        "iphone_16","iphone_16_plus","iphone_16_pro","iphone_16_pro_max",
+        "galaxy_s24","galaxy_s24_plus","galaxy_s24_ultra",
+        "galaxy_z_flip6","galaxy_z_fold6","pixel_9",
+        "galaxy_s25","galaxy_s25_plus","galaxy_s25_ultra"
+      ]),
+      "Verizon": new Set(),
+      "AT&T": new Set(),
+      "Other": new Set()
+    };
+
+    let active = -1;
+    let open = false;
+
+    function catalog() {
+      return phones.map(p => ({
+        id: p.id,
+        label: p.label || ((p.manufacturer && p.id !== "other_phone") ? (p.manufacturer + " " + p.name) : p.name),
+        manufacturer: p.manufacturer,
+        name: p.name
+      })).filter(p => p.id !== "other_phone").concat([OTHER]);
+    }
+
+    function orderByManufacturer(rows) {
+      const out = [];
+      GROUP_ORDER.forEach(function (g) {
+        rows.filter(function (p) { return p.manufacturer === g; }).forEach(function (p) { out.push(p); });
+      });
+      rows.filter(function (p) { return GROUP_ORDER.indexOf(p.manufacturer) === -1; })
+        .forEach(function (p) { out.push(p); });
+      return out;
+    }
+
+    function matches(q) {
+      const all = catalog().filter(function (p) { return p.id !== "other_phone"; });
+      const selected = catalog().find(function (p) { return p.id === phoneId.value; });
+      const raw = q || "";
+      const needle = raw.trim().toLowerCase();
+      // Empty field, or field still showing the selected label → browse every model.
+      const browsing = !needle || (selected && raw.trim() === selected.label);
+      let hit;
+      if (browsing) {
+        hit = all.slice();
+      } else {
+        hit = all.filter(function (p) {
+          return p.label.toLowerCase().includes(needle)
+            || (p.name || "").toLowerCase().includes(needle)
+            || (p.manufacturer || "").toLowerCase().includes(needle);
+        });
+      }
+      hit.push(OTHER);
+      return orderByManufacturer(hit);
+    }
+
+    function setExpanded(on) {
+      open = on;
+      search.setAttribute("aria-expanded", on ? "true" : "false");
+      list.hidden = !on;
+    }
+
+    function render(items) {
+      list.innerHTML = "";
+      if (!items.length) {
+        const li = document.createElement("li");
+        li.className = "empty";
+        li.textContent = "No matches. Choose “I can't find my phone”.";
+        list.appendChild(li);
+        active = -1;
+        setExpanded(true);
+        return;
+      }
+      let lastGroup = null;
+      items.forEach(function (p, i) {
+        const group = GROUP_ORDER.indexOf(p.manufacturer) !== -1 ? p.manufacturer : "Other";
+        if (group !== lastGroup) {
+          const head = document.createElement("li");
+          head.className = "phone-group";
+          head.setAttribute("role", "presentation");
+          head.textContent = group;
+          list.appendChild(head);
+          lastGroup = group;
+        }
+        const li = document.createElement("li");
+        li.setAttribute("role", "option");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.id = "phone_opt_" + i;
+        btn.textContent = p.label;
+        btn.setAttribute("aria-selected", i === active ? "true" : "false");
+        btn.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          choose(p);
+        });
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+      setExpanded(true);
+      search.setAttribute("aria-activedescendant", active >= 0 ? ("phone_opt_" + active) : "");
+      if (active >= 0) {
+        const el = document.getElementById("phone_opt_" + active);
+        if (el) el.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function choose(p) {
+      phoneId.value = p.id;
+      manufacturer.value = p.manufacturer || "Other";
+      search.value = p.label;
+      active = -1;
+      setExpanded(false);
+      toggleActivation();
+    }
+
+    function toggleActivation() {
+      const set = needsActivation[carrier.value] || new Set();
+      const show = set.has(phoneId.value);
+      activation.hidden = !show;
+      activation.querySelectorAll("input[type=radio]").forEach(r => {
+        r.required = show;
+        if (!show) r.checked = false;
+      });
+    }
+
+    search.addEventListener("focus", function () {
+      active = -1;
+      render(matches(search.value));
+    });
+    search.addEventListener("input", function () {
+      active = -1;
+      render(matches(search.value));
+    });
+    search.addEventListener("keydown", function (e) {
+      const items = matches(search.value);
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (!open) render(items);
+        active = Math.min(items.length - 1, active + 1);
+        render(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!open) render(items);
+        active = Math.max(0, active - 1);
+        render(items);
+      } else if (e.key === "Enter") {
+        if (open && active >= 0 && items[active]) {
+          e.preventDefault();
+          choose(items[active]);
+        }
+      } else if (e.key === "Escape") {
+        setExpanded(false);
+        active = -1;
+        search.setAttribute("aria-activedescendant", "");
+      }
+    });
+    search.addEventListener("blur", function () {
+      setTimeout(function () {
+        setExpanded(false);
+        const current = catalog().find(p => p.id === phoneId.value);
+        if (current) search.value = current.label;
+      }, 120);
+    });
+    carrier.addEventListener("change", toggleActivation);
+
+    // Ensure hidden id matches displayed label on load.
+    const initial = catalog().find(p => p.id === phoneId.value) || OTHER;
+    if (!phoneId.value) choose(OTHER);
+    else {
+      search.value = initial.label;
+      manufacturer.value = initial.manufacturer;
+    }
+    toggleActivation();
+  })();
+  </script>
 </body>
 </html>

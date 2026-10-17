@@ -1,0 +1,65 @@
+{
+  "as_of": "2026-10-17",
+  "profiles": {
+    "verizon_pixel": {
+      "name": "Verizon Pixel 9",
+      "carrier": "Verizon",
+      "phone": "Pixel 9",
+      "services": ["skylo"],
+      "tsat_compatible": false,
+      "plan": "Verizon · satellite messaging (no extra fee when eligible)",
+      "monthly_cost": 0,
+      "household_lines": 1
+    },
+    "tmobile_galaxy": {
+      "name": "T-Mobile Galaxy S25",
+      "carrier": "T-Mobile",
+      "phone": "Galaxy S25",
+      "services": ["starlink"],
+      "tsat_compatible": false,
+      "plan": "T-Mobile · T-Satellite may require plan/add-on",
+      "monthly_cost": 0,
+      "household_lines": 1
+    },
+    "att_iphone15": {
+      "name": "AT&T iPhone 15",
+      "carrier": "AT&T",
+      "phone": "iPhone 15",
+      "services": ["globalstar"],
+      "tsat_compatible": false,
+      "plan": "AT&T · Apple Messages via satellite (SMS carrier-dependent)",
+      "monthly_cost": 0,
+      "household_lines": 1
+    },
+    "att_iphone13": {
+      "name": "AT&T iPhone 13",
+      "carrier": "AT&T",
+      "phone": "iPhone 13",
+      "services": [],
+      "tsat_compatible": false,
+      "plan": "AT&T plan",
+      "monthly_cost": 0,
+      "household_lines": 1
+    }
+  },
+  "services": {
+    "starlink": {
+      "name": "T-Mobile T-Satellite",
+      "constellation": "Starlink",
+      "cost": "$10/mo add-on (or included on qualifying plans)",
+      "blocked_by_south_ridge": false
+    },
+    "globalstar": {
+      "name": "Apple Messages via Satellite",
+      "constellation": "Globalstar",
+      "cost": "Free for two years after iPhone 14+ activation (region-limited)",
+      "blocked_by_south_ridge": false
+    },
+    "skylo": {
+      "name": "Verizon satellite messaging (Skylo)",
+      "constellation": "Skylo",
+      "cost": "No extra fee when eligible",
+      "blocked_by_south_ridge": true
+    }
+  }
+}

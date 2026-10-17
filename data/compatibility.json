@@ -1,0 +1,215 @@
+{
+  "as_of": "2026-10-17",
+  "note": "Records are grounded in official provider docs. Tests validate app logic only — not external truth. Starward check-ins need ordinary SMS, not emergency SOS alone.",
+  "carriers": ["T-Mobile", "Verizon", "AT&T", "Other"],
+  "services": {
+    "skylo": {
+      "id": "skylo",
+      "name": "Verizon satellite messaging (Skylo)",
+      "constellation": "Skylo",
+      "cost": "No extra fee when eligible",
+      "blocked_by_south_ridge": true
+    },
+    "starlink": {
+      "id": "starlink",
+      "name": "T-Mobile T-Satellite",
+      "constellation": "Starlink",
+      "cost": "$10/mo add-on (or included on qualifying plans)",
+      "blocked_by_south_ridge": false
+    },
+    "globalstar": {
+      "id": "globalstar",
+      "name": "Apple Messages via Satellite",
+      "constellation": "Globalstar",
+      "cost": "Free for two years after iPhone 14+ activation (region-limited)",
+      "blocked_by_south_ridge": false
+    },
+    "pixel_sos": {
+      "id": "pixel_sos",
+      "name": "Google Pixel Satellite SOS",
+      "constellation": "Pixel SOS",
+      "cost": "Emergency feature (not ordinary SMS)",
+      "blocked_by_south_ridge": false
+    }
+  },
+  "records": [
+    {
+      "id": "verizon-android-skylo-sms",
+      "phone_ids": [
+        "galaxy_s25", "galaxy_s25_plus", "galaxy_s25_ultra", "galaxy_s25_edge",
+        "galaxy_z_fold7", "galaxy_z_flip7",
+        "pixel_9", "pixel_9_pro", "pixel_9_pro_xl", "pixel_9_pro_fold",
+        "pixel_10", "pixel_10_pro", "pixel_10_pro_xl"
+      ],
+      "carriers": ["Verizon"],
+      "service": "skylo",
+      "functionality": "ordinary_sms",
+      "status": "supported",
+      "eligibility": "Eligible Verizon Android phone; Google Messages as default; outdoors with line of sight. Continental US, Hawaii, Alaska (availability varies).",
+      "restrictions": "MMS/RCS/attachments not supported over Skylo. Software must be updated.",
+      "requires_activation": false,
+      "activation_label": null,
+      "tsat_addon_verified": false,
+      "source_url": "https://www.verizon.com/support/satellite-faqs/",
+      "source_label": "Verizon Satellite SOS & messaging FAQs",
+      "verified_as_of": "2026-10-17"
+    },
+    {
+      "id": "verizon-android-skylo-sos",
+      "phone_ids": [
+        "galaxy_s25", "galaxy_s25_plus", "galaxy_s25_ultra", "galaxy_s25_edge",
+        "galaxy_z_fold7", "galaxy_z_flip7",
+        "pixel_9", "pixel_9_pro", "pixel_9_pro_xl", "pixel_9_pro_fold",
+        "pixel_10", "pixel_10_pro", "pixel_10_pro_xl"
+      ],
+      "carriers": ["Verizon"],
+      "service": "skylo",
+      "functionality": "emergency_sos",
+      "status": "supported",
+      "eligibility": "Same eligible Verizon Android phones as satellite messaging.",
+      "restrictions": "Emergency SOS via satellite is not a substitute for Starward check-in SMS.",
+      "requires_activation": false,
+      "activation_label": null,
+      "tsat_addon_verified": false,
+      "source_url": "https://www.verizon.com/support/satellite-faqs/",
+      "source_label": "Verizon Satellite SOS & messaging FAQs",
+      "verified_as_of": "2026-10-17"
+    },
+    {
+      "id": "apple-messages-via-satellite-imessage",
+      "phone_ids": [
+        "iphone_14", "iphone_14_plus", "iphone_14_pro", "iphone_14_pro_max",
+        "iphone_15", "iphone_15_plus", "iphone_15_pro", "iphone_15_pro_max",
+        "iphone_16", "iphone_16_plus", "iphone_16_pro", "iphone_16_pro_max", "iphone_16e",
+        "iphone_17", "iphone_17_pro", "iphone_17_pro_max", "iphone_air"
+      ],
+      "carriers": ["T-Mobile", "Verizon", "AT&T", "Other"],
+      "service": "globalstar",
+      "functionality": "imessage",
+      "status": "supported",
+      "eligibility": "iPhone 14 or later; iOS 18+ (region-specific); active SIM; iMessage on before leaving coverage. Available in US, Canada, Mexico, Japan.",
+      "restrictions": "iMessage via satellite is not the same as SMS to an arbitrary number. Photos/video/group features unsupported. Not for emergencies (use Emergency SOS via satellite).",
+      "requires_activation": false,
+      "activation_label": null,
+      "tsat_addon_verified": false,
+      "source_url": "https://support.apple.com/en-us/120930",
+      "source_label": "Apple — About Messages via satellite",
+      "verified_as_of": "2026-10-17"
+    },
+    {
+      "id": "apple-messages-via-satellite-sms-carrier-dependent",
+      "phone_ids": [
+        "iphone_14", "iphone_14_plus", "iphone_14_pro", "iphone_14_pro_max",
+        "iphone_15", "iphone_15_plus", "iphone_15_pro", "iphone_15_pro_max",
+        "iphone_16", "iphone_16_plus", "iphone_16_pro", "iphone_16_pro_max", "iphone_16e",
+        "iphone_17", "iphone_17_pro", "iphone_17_pro_max", "iphone_air"
+      ],
+      "carriers": ["T-Mobile", "Verizon", "AT&T", "Other"],
+      "service": "globalstar",
+      "functionality": "ordinary_sms",
+      "status": "unknown",
+      "eligibility": "Apple documents SMS via satellite on iPhone 14+, but availability depends on carrier support and may incur carrier fees.",
+      "restrictions": "Do not assume Starward check-in SMS works until the carrier confirms SMS-via-satellite support for this line.",
+      "requires_activation": false,
+      "activation_label": null,
+      "tsat_addon_verified": false,
+      "source_url": "https://support.apple.com/en-us/120930",
+      "source_label": "Apple — About Messages via satellite (SMS depends on carrier)",
+      "verified_as_of": "2026-10-17"
+    },
+    {
+      "id": "apple-carrier-provided-satellite-capability",
+      "phone_ids": [
+        "iphone_13", "iphone_13_mini", "iphone_13_pro", "iphone_13_pro_max",
+        "iphone_14", "iphone_14_plus", "iphone_14_pro", "iphone_14_pro_max",
+        "iphone_15", "iphone_15_plus", "iphone_15_pro", "iphone_15_pro_max",
+        "iphone_16", "iphone_16_plus", "iphone_16_pro", "iphone_16_pro_max", "iphone_16e",
+        "iphone_17", "iphone_17_pro", "iphone_17_pro_max", "iphone_air"
+      ],
+      "carriers": ["T-Mobile", "Verizon", "AT&T", "Other"],
+      "service": "starlink",
+      "functionality": "ordinary_sms",
+      "status": "unknown",
+      "eligibility": "Apple documents that iPhone 13 and later may use carrier-provided satellite features with a supported carrier, latest iOS, and sometimes a supported plan. Status bar may show SAT.",
+      "restrictions": "Capability alone does not prove this carrier/account combination supports ordinary SMS check-ins. Confirm with the carrier.",
+      "requires_activation": true,
+      "activation_label": "satellite messaging / carrier satellite features",
+      "tsat_addon_verified": false,
+      "source_url": "https://support.apple.com/en-us/122339",
+      "source_label": "Apple — About carrier-provided satellite features",
+      "verified_as_of": "2026-10-17"
+    },
+    {
+      "id": "tmobile-tsatellite-tutorial-devices",
+      "phone_ids": [
+        "iphone_16", "iphone_16_plus", "iphone_16_pro", "iphone_16_pro_max",
+        "galaxy_s24", "galaxy_s24_plus", "galaxy_s24_ultra",
+        "galaxy_z_flip6", "galaxy_z_fold6",
+        "pixel_9"
+      ],
+      "carriers": ["T-Mobile"],
+      "service": "starlink",
+      "functionality": "ordinary_sms",
+      "status": "unknown",
+      "eligibility": "Potentially compatible with T-Satellite. Confirm your device and plan eligibility with T-Mobile before relying on satellite SMS. Tutorials and support pages are not conclusive proof for every account configuration.",
+      "restrictions": "Do not treat tutorial listing as verified Starward check-in SMS. Confirm in T-Life or the T-Mobile IMEI checker. Plan/add-on, software, and eSIM rules may apply.",
+      "requires_activation": true,
+      "activation_label": "T-Satellite",
+      "tsat_addon_verified": false,
+      "source_url": "https://www.t-mobile.com/support/coverage/satellite-support",
+      "source_label": "T-Mobile — T-Satellite support (confirm eligibility)",
+      "verified_as_of": "2026-10-17"
+    },
+    {
+      "id": "tmobile-tsatellite-s25-demo",
+      "phone_ids": ["galaxy_s25", "galaxy_s25_plus", "galaxy_s25_ultra"],
+      "carriers": ["T-Mobile"],
+      "service": "starlink",
+      "functionality": "ordinary_sms",
+      "status": "unknown",
+      "eligibility": "Galaxy S25 appears in Starward's demo catalog as T-Satellite capable, but T-Mobile's public tutorial list checked for this hackathon names S24 (not S25). Confirm with T-Life / IMEI checker before relying on it.",
+      "restrictions": "Treat as unverified until T-Mobile eligibility tools confirm the device and plan.",
+      "requires_activation": true,
+      "activation_label": "T-Satellite",
+      "tsat_addon_verified": false,
+      "source_url": "https://www.t-mobile.com/support/coverage/satellite-support",
+      "source_label": "T-Mobile — T-Satellite support (confirm via IMEI / T-Life)",
+      "verified_as_of": "2026-10-17"
+    },
+    {
+      "id": "pixel-satellite-sos-only",
+      "phone_ids": [
+        "pixel_9", "pixel_9_pro", "pixel_9_pro_xl", "pixel_9_pro_fold",
+        "pixel_10", "pixel_10_pro", "pixel_10_pro_xl"
+      ],
+      "carriers": ["T-Mobile", "Verizon", "AT&T", "Other"],
+      "service": "pixel_sos",
+      "functionality": "emergency_sos",
+      "status": "supported",
+      "eligibility": "Pixel 9 and later except Pixel 9a; region and software dependent. Google Messages as default.",
+      "restrictions": "Pixel Satellite SOS does not by itself establish ordinary SMS for Starward check-ins. Use only for emergencies when no other option exists.",
+      "requires_activation": false,
+      "activation_label": null,
+      "tsat_addon_verified": false,
+      "source_url": "https://support.google.com/pixelphone/answer/15254448",
+      "source_label": "Google — Pixel Satellite SOS",
+      "verified_as_of": "2026-10-17"
+    },
+    {
+      "id": "pixel-9a-sos-unsupported",
+      "phone_ids": ["pixel_9a"],
+      "carriers": ["T-Mobile", "Verizon", "AT&T", "Other"],
+      "service": "pixel_sos",
+      "functionality": "emergency_sos",
+      "status": "unsupported",
+      "eligibility": "Google documents Satellite SOS on Pixel 9 and later except Pixel 9a.",
+      "restrictions": "Do not treat Pixel 9a as having Pixel Satellite SOS.",
+      "requires_activation": false,
+      "activation_label": null,
+      "tsat_addon_verified": false,
+      "source_url": "https://support.google.com/pixelphone/answer/15254448",
+      "source_label": "Google — Pixel Satellite SOS",
+      "verified_as_of": "2026-10-17"
+    }
+  ]
+}
