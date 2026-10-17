@@ -1,4 +1,4 @@
-# TODO(D): send/receive via Photon 2.0; Grok Voice notes
+# TODO(D): send/receive via Photon 2.0
 """Fake guardian: shares the plan, records check-ins, and drafts missed-check-in alerts."""
 from datetime import datetime
 

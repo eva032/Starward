@@ -32,6 +32,6 @@ Endpoints: `GET /?profile=<id>`, `POST /share`, `POST /simulate/missed`, `POST /
 | A | Geo + space | coverage.py, data.py `TRAIL` |
 | B | Recommendation | recommend.py, data.py profiles/services |
 | C | Web app + deploy | app.py, templates/ |
-| D | Photon guardian + Grok | guardian.py |
+| D | Photon guardian | guardian.py |
 
 See `AGENTS.md` for contracts and rules.

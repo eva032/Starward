@@ -16,7 +16,7 @@ python app.py   # http://localhost:5000
 | A | Geo + space: route sampling, SRTM horizon masks, USFS canopy, skyfield passes, check-in picker | coverage.py, data.py `TRAIL` (+ new route.py, terrain.py, orbits.py) |
 | B | Recommendation: carrier catalog, prices, the three outcomes and their reasons | recommend.py, data.py `PROFILES` / `SERVICES` / `CATALOG_AS_OF` |
 | C | Web app + deploy: Flask routes, map, UI | app.py, templates/ |
-| D | Photon guardian + Grok: plan sharing, check-ins, missed-window alerts, voice notes | guardian.py (+ new voice.py) |
+| D | Photon guardian: plan sharing, check-ins, missed-check-in alerts | guardian.py |
 
 ## Contracts (don't change without telling the team)
 - `get_coverage(trail, profile, services=None) -> {"segments": [...], "checkins": [...], "confidence", ...}`
