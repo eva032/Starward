@@ -4,4 +4,6 @@ python-dotenv
 pytest
 requests
 skyfield
+sgp4
+numpy
 tzdata
