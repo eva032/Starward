@@ -4,12 +4,14 @@ import unittest
 
 # Ensure Demo Mode for tests.
 os.environ.pop("PHOTON_KEY", None)
+os.environ.pop("BRIDGE_URL", None)
+os.environ.pop("BRIDGE_TOKEN", None)
 os.environ["FLASK_SECRET_KEY"] = "test-secret"
 
 from app import app  # noqa: E402
 from coverage import get_coverage, _parse_start_minutes  # noqa: E402
 from data import PROFILES, TRAIL, get_trail, find_profile  # noqa: E402
-from guardian import share_plan, simulate_missed, photon_configured  # noqa: E402
+from guardian import share_plan, simulate_missed, is_live  # noqa: E402
 
 
 class CoverageTimingTests(unittest.TestCase):
@@ -120,7 +122,7 @@ class AppFlowTests(unittest.TestCase):
                 self.assertIn(profile["phone"], body)
 
     def test_share_is_simulated_in_demo_mode(self):
-        self.assertFalse(photon_configured())
+        self.assertFalse(is_live())
         self.client.post("/plan", data=self._plan_form())
         res = self.client.post("/share", data=self._plan_form())
         self.assertEqual(res.status_code, 200)

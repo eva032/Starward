@@ -3,13 +3,15 @@
 Starward predicts where on a hike your phone can text by satellite, recommends the cheapest setup that covers your check-ins, builds a check-in plan around those spots, and alerts an emergency contact if a check-in is missed. Hackathon project. Tracks: SpaceXAI, Photon, T-Mobile (recommendations in wireless commerce).
 
 ## Current state
-Coverage uses real routes, terrain and satellite orbits (canopy still estimated); catalogs are JSON; SMS is still fake. Remaining fakes are marked `TODO(<owner>)`. Replace fakes one at a time; keep signatures backward compatible (add optional kwargs only).
+Coverage uses real routes, terrain and satellite orbits (canopy still estimated); catalogs are JSON. SMS is Demo Mode unless `BRIDGE_URL` points at `bridge/`. Remaining fakes are marked `TODO(<owner>)`. Replace fakes one at a time; keep signatures backward compatible (add optional kwargs only).
 
 ## Run (localhost — Track C)
 python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env   # optional; Demo Mode works without Photon
+cp .env.example .env   # optional; Demo Mode works without the bridge
 python app.py   # http://127.0.0.1:5000
+
+Live SMS (Track D): `cd bridge && npm install && npm run start`, with matching `BRIDGE_URL` / `BRIDGE_TOKEN` in the root `.env` and Spectrum creds in `bridge/.env`.
 
 ## Ownership: stay in your own files
 | Owner | Area | Files |
@@ -17,7 +19,7 @@ python app.py   # http://127.0.0.1:5000
 | A | Geo + space: routes, terrain horizons, canopy, satellite passes, check-in spots | coverage.py, route.py, terrain.py, orbits.py, tools/, `data/trails/`, `data/tle/` |
 | B | Recommendation: carrier catalog, prices, which services a phone + carrier has, outcomes and reasons, household | recommend.py, `data/__init__.py`, `data/*.json` catalogs, templates/household.html, pitch/ |
 | C | Web app + localhost: trip form, map, phone picker, official source links | app.py, templates/index.html, `data/phones.json`, `data/compatibility.json`, `data/compat.py` |
-| D | Photon guardian: plan sharing, check-ins, missed-check-in alerts | guardian.py |
+| D | Photon guardian: plan sharing, check-ins, missed-check-in alerts | guardian.py, bridge/ |
 
 Shared package: `data/` (`__init__.py` exports `TRAILS`, `TRAIL`, `get_trail`, `PROFILES`, `SERVICES`, `CATALOG_AS_OF`, `build_situation_profile`, `infer_services`, ...).
 Which services a phone + carrier has is decided by Track B (`infer_services`). `data/compat.py` supplies the phone list and official source links; its own verdict/recommendation path is not used by the app.

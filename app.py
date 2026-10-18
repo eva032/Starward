@@ -50,7 +50,7 @@ def _phone_display_label(phone: dict) -> str:
     if maker and name.startswith(maker):
         return name
     return f"{maker} {name}".strip()
-from guardian import handle_checkin, photon_configured, share_plan, simulate_missed
+from guardian import BRIDGE_TOKEN, handle_checkin, is_live, share_plan, simulate_missed
 from recommend import get_household_recommendation, get_recommendation
 
 app = Flask(__name__)
@@ -66,8 +66,8 @@ MAX_COMPANIONS = 5
 
 
 def fake_mode():
-    """Demo/Fake mode when Photon is not configured (or coverage is still simulated)."""
-    return not photon_configured()
+    """Demo Mode when the Photon bridge is not configured."""
+    return not is_live()
 
 
 def _call_with_supported(fn, *args, **kwargs):
@@ -481,7 +481,7 @@ def _render(form=None, notice=None, view="current", errors=None, show_plan=False
         errors=errors or [],
         show_plan=show_plan,
         fake_mode=fake_mode(),
-        photon_ready=photon_configured(),
+        photon_ready=is_live(),
         ask_activation=setup.get("ask_activation"),
         activation_label_text=activation_label(form.get("phone_id"), form.get("carrier")),
         market_sources=MARKET_SOURCES,
@@ -575,11 +575,13 @@ def share():
     )
     _save_trip(form, date.fromisoformat(form["trip_date"]) if form.get("trip_date") else None)
 
-    # Guardian does not call Photon send yet (Track D). Never claim SMS was sent or delivered.
-    notice = (
-        f"Message preview only — no SMS sent.\n"
-        f"Draft for {contact}:\n{plan_text}"
-    )
+    if is_live():
+        notice = f"Plan sent to {contact}.\n{plan_text}"
+    else:
+        notice = (
+            f"Message preview only — no SMS sent.\n"
+            f"Draft for {contact}:\n{plan_text}"
+        )
     return _render(form=form, notice=notice, show_plan=True)
 
 
@@ -599,13 +601,18 @@ def missed():
 
     contact = form.get("contact") or ""
     alert = simulate_missed(contact)
-    notice = f"Message preview only — no SMS sent.\n{alert}"
+    if is_live():
+        notice = f"Missed-check-in alert sent.\n{alert}"
+    else:
+        notice = f"Message preview only — no SMS sent.\n{alert}"
     return _render(form=form, notice=notice, show_plan=True)
 
 
 @app.post("/webhook/photon")
 def photon_webhook():
-    """Incoming Photon SMS. On localhost, expose this URL with a public tunnel (Track D)."""
+    """Incoming texts from the Photon bridge (localhost: no tunnel needed)."""
+    if BRIDGE_TOKEN and request.headers.get("authorization") != f"Bearer {BRIDGE_TOKEN}":
+        return "", 401
     body = request.get_json(silent=True) or {}
     print(f"[webhook] {body}")
     reply = handle_checkin(body.get("from", ""), body.get("text", ""))
@@ -617,7 +624,7 @@ def health():
     return {
         "ok": True,
         "fake_mode": fake_mode(),
-        "photon": photon_configured(),
+        "photon": is_live(),
         "time": datetime.now().isoformat(timespec="seconds"),
     }
 

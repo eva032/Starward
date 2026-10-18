@@ -6,10 +6,10 @@
     <a href="/" class="{{ 'on' if active == 'hiker' }}">Plan a hike</a>
     <a href="/pitch/tmobile">T-Mobile pitch</a>
   </nav>
-  {% if fake_mode %}<span class="demo-badge" title="Texts are previews until Photon delivery is connected">Demo Mode</span>{% endif %}
+  {% if fake_mode %}<span class="demo-badge" title="Texts are previews until BRIDGE_URL points at the Photon bridge">Demo Mode</span>{% endif %}
 </header>
 {% if fake_mode %}
 <div class="demo-banner">
-  Demo Mode: texts are previews only, nothing is sent yet. Coverage uses real terrain and satellite orbit data; tree cover is still estimated.
+  Demo Mode: texts are previews only until the Photon bridge is running. Coverage uses real terrain and satellite orbit data; tree cover is still estimated.
 </div>
 {% endif %}

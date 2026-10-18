@@ -3,6 +3,8 @@ import os
 import unittest
 
 os.environ.pop("PHOTON_KEY", None)
+os.environ.pop("BRIDGE_URL", None)
+os.environ.pop("BRIDGE_TOKEN", None)
 os.environ["FLASK_SECRET_KEY"] = "test-secret"
 
 from app import app  # noqa: E402
