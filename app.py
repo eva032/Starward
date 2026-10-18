@@ -1,4 +1,4 @@
-"""Starward Flask app — Track C: trip inputs, map, recommendations, share flow."""
+"""Starward Flask app — Track C: trip inputs, map, share flow; Track B: per-hiker and group recommendations."""
 from __future__ import annotations
 
 import inspect
@@ -8,7 +8,9 @@ import re
 from datetime import date, datetime
 
 import folium
-from flask import Flask, render_template, request, session
+from pathlib import Path
+
+from flask import Flask, redirect, render_template, request, send_from_directory, session, url_for
 
 try:
     from dotenv import load_dotenv
@@ -16,21 +18,25 @@ try:
 except ImportError:
     pass
 
-from coverage import get_coverage
+from coverage import get_coverage, start_time_for_input, trip_month_label
 from data import (
+    COMPAT_AS_OF,
+    MARKET_SOURCES,
     PHONES,
     PROFILES,
     SERVICES,
     TRAILS,
     activation_label,
+    build_custom_line,
+    build_situation_profile,
+    build_sources,
     carrier_options,
     get_trail,
+    line_as_profile,
     needs_activation_question,
     phone_by_id,
     resolve_phone_id,
-    resolve_setup,
 )
-from data.compat import build_recommendation
 
 OTHER_PHONE_ID = "other_phone"
 
@@ -44,16 +50,18 @@ def _phone_display_label(phone: dict) -> str:
         return name
     return f"{maker} {name}".strip()
 from guardian import handle_checkin, photon_configured, share_plan, simulate_missed
-from recommend import get_recommendation
+from recommend import get_household_recommendation, get_recommendation
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "starward-demo-localhost-only")
+_PITCH_DIR = Path(__file__).resolve().parent / "pitch"
 
 DEFAULT_PROFILE = "verizon_pixel"
 DEFAULT_PHONE_ID = "pixel_9"
 DEFAULT_CARRIER = "Verizon"
 COLORS = {"green": "#1f9d55", "yellow": "#e0a800", "red": "#d64545"}
 PHONE_RE = re.compile(r"^\+?[\d\s().-]{7,20}$")
+MAX_COMPANIONS = 5
 
 
 def fake_mode():
@@ -150,6 +158,7 @@ def _form_from_request(src) -> dict:
         carrier = (src.get("carrier") or defaults["carrier"]).strip()
 
     return {
+        "companions": _companions_from(src),
         "trail_id": src.get("trail_id") or defaults["trail_id"],
         "trip_date": src.get("trip_date") or defaults["trip_date"],
         "start_time": src.get("start_time") or defaults["start_time"],
@@ -164,6 +173,21 @@ def _form_from_request(src) -> dict:
         "contact": _normalize_phone(src.get("contact", "")),
         "profile_id": profile_id or defaults["profile_id"],
     }
+
+
+def _companions_from(src) -> list:
+    """People hiking with the hiker: [{"name", "phone_id", "carrier"}], from the form or a saved trip."""
+    if hasattr(src, "getlist"):
+        rows = zip(src.getlist("companion_name"), src.getlist("companion_phone_id"),
+                   src.getlist("companion_carrier"))
+        people = [{"name": (n or "").strip(), "phone_id": (pid or "").strip(), "carrier": (c or "").strip()}
+                  for n, pid, c in rows]
+    else:
+        people = [dict(p) for p in (src.get("companions") or [])]
+    people = [p for p in people if p["name"] or p["phone_id"]][:MAX_COMPANIONS]
+    for i, person in enumerate(people):
+        person["name"] = person["name"] or f"Hiker {i + 2}"
+    return people
 
 
 def _validate_trip(form: dict):
@@ -189,32 +213,63 @@ def _validate_trip(form: dict):
             errors.append(f"Tell us whether {label} is already activated on this line.")
     if form["contact"] and not _valid_phone(form["contact"]):
         errors.append("Emergency contact phone looks invalid.")
+    for person in form.get("companions", []):
+        if not phone_by_id(person["phone_id"]):
+            errors.append(f"Pick a phone for {person['name']}.")
+        if person["carrier"] not in carrier_options():
+            errors.append(f"Pick a carrier for {person['name']}.")
     return trip_date, errors
 
 
 def _setup_for(form: dict):
-    return resolve_setup(
-        phone_id=form.get("phone_id"),
-        carrier=form.get("carrier"),
-        satellite_activated=form.get("satellite_activated"),
-        demo_profiles=PROFILES,
+    """Phone + carrier answers -> Track B situation profile, plus official source links."""
+    phone_id = form.get("phone_id")
+    carrier = form.get("carrier")
+    phone_row = phone_by_id(phone_id) or {}
+    phone_name = phone_row.get("name") or form.get("phone") or "Other / not listed"
+    # "Is T-Satellite already activated?" maps to Track B's plan status. The same question is
+    # asked about other carriers' satellite features; only a T-Satellite "yes" means it's included.
+    asked_tsat = activation_label(phone_id, carrier) == "T-Satellite"
+    plan_status = "tsat_included" if asked_tsat and form.get("satellite_activated") == "yes" else "can_add_tsat"
+    profile = build_situation_profile(
+        phone=phone_name,
+        carrier=carrier,
+        plan_status=plan_status,
+        satellite_choice="auto",
+        display_name=form.get("hiker_name") or "You",
+        trip_date=form.get("trip_date") or "",
+        start_time=start_time_for_input(form.get("start_time"), "09:00"),
     )
+    return {
+        "profile": profile,
+        "phone": phone_row or {"name": phone_name},
+        "ask_activation": needs_activation_question(phone_id, carrier),
+        "sources": build_sources(phone_id, carrier),
+        "as_of": COMPAT_AS_OF,
+    }
 
 
-def _recommendation_for(trail, setup, trip_date=None, start_time=None):
-    def _rec(trail, profile, trip_date=None, start_time=None, allow_tsat_purchase=True):
-        return _call_with_supported(
-            get_recommendation,
-            trail,
-            profile,
-            trip_date=trip_date,
-            start_time=start_time,
-            allow_tsat_purchase=allow_tsat_purchase,
-        )
+def _recommendation_for(trail, setup):
+    return get_recommendation(trail, setup["profile"])
 
-    return build_recommendation(
-        trail, setup, _rec, trip_date=trip_date, start_time=start_time,
-    )
+
+def _group_for(form, setup):
+    """Hiker + companions as a Track B household; None when hiking alone."""
+    if not form.get("companions"):
+        return None
+    trip_date = form.get("trip_date") or ""
+    start = start_time_for_input(form.get("start_time"), "09:00")
+    hiker = setup["profile"]
+    lines = [build_custom_line(0, form.get("hiker_name") or "You", hiker["phone"], hiker["carrier"],
+                               "My plan", "auto", plan_status=hiker["plan_status"])]
+    for i, person in enumerate(form["companions"], 1):
+        phone = (phone_by_id(person["phone_id"]) or {}).get("name") or "Other / not listed"
+        lines.append(build_custom_line(i, person["name"], phone, person["carrier"], "My plan", "auto"))
+    return {
+        "id": "trip_group", "name": "Your group", "summary": "", "custom": True,
+        "trip_date": trip_date, "start_time": start, "trip_month": trip_month_label(trip_date, "this trip"),
+        "lines": lines,
+    }
 
 
 def _build_map(trail, coverage):
@@ -241,10 +296,10 @@ def _build_map(trail, coverage):
             if c["covered"] else
             "Low estimated chance — not guaranteed"
         )
-        windows = ", ".join(c["windows"]) or "none expected (simulated)"
+        windows = ", ".join(c["windows"]) or "none expected"
         popup = (
             f"<div style='font-family:system-ui,sans-serif;font-size:13px'><b>{c['name']}</b><br>"
-            f"Expected {c['time']}<br>Demo pass windows: {windows}<br>{status}</div>"
+            f"Expected {c['time']}<br>Best-chance windows: {windows}<br>{status}</div>"
         )
         badge = (
             f"<div style='width:26px;height:26px;border-radius:50%;background:{COLORS[c['color']]};"
@@ -272,7 +327,34 @@ def _save_trip(form, trip_date):
     }
 
 
-def _render(form=None, notice=None, view="current", errors=None, show_plan=False):
+def _trip_label(trip_date):
+    """'Sat, Oct 18' from an ISO date; the raw value if it doesn't parse."""
+    try:
+        d = date.fromisoformat(str(trip_date))
+    except ValueError:
+        return trip_date or ""
+    return f"{d:%a}, {d:%b} {d.day}"
+
+
+def _phones_by_maker():
+    """[(manufacturer, [phone, ...]), ...] for the companions' phone dropdowns."""
+    groups = {}
+    for p in PHONES:
+        groups.setdefault(p.get("manufacturer") or "Other", []).append(p)
+    order = ["Apple", "Samsung", "Google"]
+    return sorted(groups.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else len(order), kv[0]))
+
+
+def _activation_map():
+    """{carrier: {phone_id: question label}} for every pair where the server asks about activation."""
+    return {
+        carrier: {p["id"]: activation_label(p["id"], carrier)
+                  for p in PHONES if needs_activation_question(p["id"], carrier)}
+        for carrier in carrier_options()
+    }
+
+
+def _render(form=None, notice=None, view="current", errors=None, show_plan=False, person=0):
     form = form or _default_form()
     setup = _setup_for(form)
     profile = setup["profile"]
@@ -288,8 +370,14 @@ def _render(form=None, notice=None, view="current", errors=None, show_plan=False
     trip_date = form.get("trip_date")
     start_time = form.get("start_time")
 
-    rec = _recommendation_for(trail, setup, trip_date=trip_date, start_time=start_time)
-    view = view if rec.get("outcome") == "add_service" else "current"
+    rec = _recommendation_for(trail, setup)
+    household = _group_for(form, setup) if show_plan else None
+    group = get_household_recommendation(trail, household=household) if household else None
+
+    # The map shows the hiker by default, or another person in the group.
+    person = person if household and 0 <= person < len(household["lines"]) else 0
+    map_profile = line_as_profile(household["lines"][person]) if person else profile
+    view = view if person == 0 and rec.get("outcome") == "add_service" else "current"
     services = profile["services"] + ["starlink"] if view == "tsat" else None
     # Only pass known coverage services (skip pixel_sos etc.).
     if services is not None:
@@ -297,7 +385,7 @@ def _render(form=None, notice=None, view="current", errors=None, show_plan=False
     coverage = _call_with_supported(
         get_coverage,
         trail,
-        profile,
+        map_profile,
         services=services,
         trip_date=trip_date,
         start_time=start_time,
@@ -327,6 +415,13 @@ def _render(form=None, notice=None, view="current", errors=None, show_plan=False
         profile=profile,
         coverage=coverage,
         rec=rec,
+        group=group,
+        household=household,
+        person=person,
+        trip_label=_trip_label(trip_date),
+        phones_by_maker=_phones_by_maker(),
+        map_name=household["lines"][person]["display_name"] if household else form.get("hiker_name"),
+        max_companions=MAX_COMPANIONS,
         view=view,
         map_doc=_build_map(trail, coverage) if show_plan else None,
         notice=notice,
@@ -336,12 +431,18 @@ def _render(form=None, notice=None, view="current", errors=None, show_plan=False
         photon_ready=photon_configured(),
         ask_activation=setup.get("ask_activation"),
         activation_label_text=activation_label(form.get("phone_id"), form.get("carrier")),
+        market_sources=MARKET_SOURCES,
+        activation_json=json.dumps(_activation_map()),
     )
 
 
 @app.get("/")
 def index():
     view = request.args.get("view", "current")
+    try:
+        person = int(request.args.get("person", 0))
+    except ValueError:
+        person = 0
     saved = _trip_from_session()
     if saved:
         form = _form_from_request(saved)
@@ -354,7 +455,7 @@ def index():
             form["phone_label"] = _phone_display_label(phone) if phone else p["phone"]
             form["carrier"] = p["carrier"]
             form["profile_id"] = request.args["profile"]
-        return _render(form=form, view=view, show_plan=True)
+        return _render(form=form, view=view, show_plan=True, person=person)
     form = _default_form()
     if request.args.get("profile") in PROFILES:
         p = PROFILES[request.args["profile"]]
@@ -390,6 +491,7 @@ def share():
         ):
             if not form.get(key) and saved.get(key):
                 form[key] = saved[key]
+        form["companions"] = form["companions"] or saved.get("companions", [])
     contact = form["contact"] or _normalize_phone(request.form.get("contact", ""))
     form["contact"] = contact
 
@@ -438,6 +540,7 @@ def missed():
     if saved:
         for key, value in saved.items():
             form.setdefault(key, value)
+        form["companions"] = form["companions"] or saved.get("companions", [])
         if not form.get("contact"):
             form["contact"] = saved.get("contact", "")
 
@@ -464,6 +567,17 @@ def health():
         "photon": photon_configured(),
         "time": datetime.now().isoformat(timespec="seconds"),
     }
+
+
+@app.get("/pitch/tmobile")
+def pitch_tmobile():
+    return send_from_directory(_PITCH_DIR, "tmobile.html")
+
+
+@app.get("/household")
+def household():
+    """The group planner now lives on the main page ("Who's coming?")."""
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":

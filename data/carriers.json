@@ -1,34 +1,174 @@
 {
   "as_of": "2026-10-17",
+  "price_source_url": "https://www.t-mobile.com/coverage/satellite-phone-service",
+  "devices_source_url": "https://www.t-mobile.com/support/coverage/satellite-support",
+  "services": {
+    "starlink": {
+      "name": "T-Mobile T-Satellite",
+      "constellation": "Starlink",
+      "cost": "$10/mo",
+      "cost_detail": "Included with Experience Beyond and Better Value plans; otherwise $10/mo per line. Auto-renews monthly; cancel anytime in T-Life.",
+      "blocked_by_south_ridge": false,
+      "source_url": "https://www.t-mobile.com/coverage/satellite-phone-service"
+    },
+    "globalstar": {
+      "name": "Apple Messages via Satellite",
+      "constellation": "Globalstar",
+      "cost": "Free",
+      "cost_detail": "Included with eligible iPhones; no carrier add-on required for basic satellite messaging.",
+      "blocked_by_south_ridge": false,
+      "source_url": "https://support.apple.com/en-us/105097"
+    },
+    "skylo": {
+      "name": "Google/Verizon satellite",
+      "constellation": "Skylo",
+      "cost": "Free",
+      "cost_detail": "Satellite messaging included on eligible Pixel phones with supported Verizon plans.",
+      "blocked_by_south_ridge": true,
+      "source_url": "https://support.google.com/pixelphone/answer/14569537"
+    }
+  },
+  "tsat_compatible_phones": [
+    "iPhone 13",
+    "iPhone 13 Pro",
+    "iPhone 13 Pro Max",
+    "iPhone 13 mini",
+    "iPhone 14",
+    "iPhone 14 Plus",
+    "iPhone 14 Pro",
+    "iPhone 14 Pro Max",
+    "iPhone 15",
+    "iPhone 15 Plus",
+    "iPhone 15 Pro",
+    "iPhone 15 Pro Max",
+    "iPhone 16",
+    "iPhone 16 Plus",
+    "iPhone 16 Pro",
+    "iPhone 16 Pro Max",
+    "iPhone 16e",
+    "iPhone 17",
+    "iPhone 17 Pro",
+    "iPhone 17 Pro Max",
+    "iPhone Air",
+    "Pixel 9",
+    "Pixel 9a",
+    "Pixel 9 Pro",
+    "Pixel 9 Pro XL",
+    "Pixel 9 Pro Fold",
+    "Pixel 10",
+    "Pixel 10 Pro",
+    "Pixel 10 Pro XL",
+    "Pixel 10 Fold",
+    "moto g play 2026",
+    "moto edge 2025",
+    "moto g 5G 2025",
+    "moto g 2024",
+    "moto g power 5G 2025",
+    "moto razr 2024",
+    "moto razr+ 2024",
+    "moto razr 2025",
+    "moto razr+ 2025",
+    "moto razr ultra 2025",
+    "moto edge 2024",
+    "moto edge 2022",
+    "moto g stylus 2024",
+    "Galaxy A14",
+    "Galaxy A15 5G",
+    "Galaxy A16 5G SE",
+    "Galaxy A16 5G",
+    "Galaxy A17 5G",
+    "Galaxy A17 5G SE",
+    "Galaxy A25 SE",
+    "Galaxy A26 SE",
+    "Galaxy A35",
+    "Galaxy A36 SE",
+    "Galaxy A36 5G",
+    "Galaxy A53",
+    "Galaxy A54",
+    "Galaxy A56 5G SE",
+    "Galaxy S21",
+    "Galaxy S21+",
+    "Galaxy S21 Ultra",
+    "Galaxy S21 FE",
+    "Galaxy S22",
+    "Galaxy S22+",
+    "Galaxy S22 Ultra",
+    "Galaxy S23",
+    "Galaxy S23+",
+    "Galaxy S23 Ultra",
+    "Galaxy S23 FE",
+    "Galaxy S24",
+    "Galaxy S24+",
+    "Galaxy S24 Ultra",
+    "Galaxy S24 FE",
+    "Galaxy S25",
+    "Galaxy S25+",
+    "Galaxy S25 Ultra",
+    "Galaxy S25 Edge",
+    "Galaxy S25 FE",
+    "Galaxy XCover6 Pro",
+    "Galaxy XCover7 Pro",
+    "Galaxy Z Flip3",
+    "Galaxy Z Flip4",
+    "Galaxy Z Flip5",
+    "Galaxy Z Flip6",
+    "Galaxy Z Flip7",
+    "Galaxy Z Fold3",
+    "Galaxy Z Fold4",
+    "Galaxy Z Fold5",
+    "Galaxy Z Fold6",
+    "Galaxy Z Fold7",
+    "REVVL 7",
+    "T-Mobile REVVL 7",
+    "REVVL 7 Pro",
+    "T-Mobile REVVL 7 Pro",
+    "REVVL 8",
+    "T-Mobile REVVL 8",
+    "REVVL 8 Pro",
+    "T-Mobile REVVL 8 Pro",
+    "What\u2019s available"
+  ],
   "profiles": {
     "verizon_pixel": {
       "name": "Verizon Pixel 9",
       "carrier": "Verizon",
       "phone": "Pixel 9",
-      "services": ["skylo"],
-      "tsat_compatible": false,
-      "plan": "Verizon · satellite messaging (no extra fee when eligible)",
-      "monthly_cost": 0,
-      "household_lines": 1
+      "services": [
+        "skylo"
+      ],
+      "plan": "Unlimited Plus",
+      "monthly_cost": 90,
+      "household_lines": 3
     },
     "tmobile_galaxy": {
       "name": "T-Mobile Galaxy S25",
       "carrier": "T-Mobile",
       "phone": "Galaxy S25",
-      "services": ["starlink"],
-      "tsat_compatible": false,
-      "plan": "T-Mobile · T-Satellite may require plan/add-on",
-      "monthly_cost": 0,
-      "household_lines": 1
+      "services": [
+        "starlink"
+      ],
+      "plan": "Experience Beyond (T-Satellite included)",
+      "monthly_cost": 100,
+      "household_lines": 2
     },
     "att_iphone15": {
       "name": "AT&T iPhone 15",
       "carrier": "AT&T",
       "phone": "iPhone 15",
-      "services": ["globalstar"],
-      "tsat_compatible": false,
-      "plan": "AT&T · Apple Messages via satellite (SMS carrier-dependent)",
-      "monthly_cost": 0,
+      "services": [
+        "globalstar"
+      ],
+      "plan": "Unlimited Starter",
+      "monthly_cost": 65,
+      "household_lines": 1
+    },
+    "att_iphone12": {
+      "name": "AT&T iPhone 12",
+      "carrier": "AT&T",
+      "phone": "iPhone 12",
+      "services": [],
+      "plan": "Unlimited Starter",
+      "monthly_cost": 65,
       "household_lines": 1
     },
     "att_iphone13": {
@@ -36,30 +176,29 @@
       "carrier": "AT&T",
       "phone": "iPhone 13",
       "services": [],
-      "tsat_compatible": false,
-      "plan": "AT&T plan",
-      "monthly_cost": 0,
+      "plan": "Unlimited Starter",
+      "monthly_cost": 65,
       "household_lines": 1
-    }
-  },
-  "services": {
-    "starlink": {
-      "name": "T-Mobile T-Satellite",
-      "constellation": "Starlink",
-      "cost": "$10/mo add-on (or included on qualifying plans)",
-      "blocked_by_south_ridge": false
     },
-    "globalstar": {
-      "name": "Apple Messages via Satellite",
-      "constellation": "Globalstar",
-      "cost": "Free for two years after iPhone 14+ activation (region-limited)",
-      "blocked_by_south_ridge": false
+    "tmobile_iphone16": {
+      "name": "T-Mobile iPhone 16",
+      "carrier": "T-Mobile",
+      "phone": "iPhone 16",
+      "services": [
+        "starlink"
+      ],
+      "plan": "Experience Beyond (T-Satellite included)",
+      "monthly_cost": 100,
+      "household_lines": 1
     },
-    "skylo": {
-      "name": "Verizon satellite messaging (Skylo)",
-      "constellation": "Skylo",
-      "cost": "No extra fee when eligible",
-      "blocked_by_south_ridge": true
+    "verizon_s24": {
+      "name": "Verizon Galaxy S24",
+      "carrier": "Verizon",
+      "phone": "Galaxy S24",
+      "services": [],
+      "plan": "Unlimited Plus",
+      "monthly_cost": 90,
+      "household_lines": 2
     }
   }
 }

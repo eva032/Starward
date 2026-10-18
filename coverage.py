@@ -1,43 +1,65 @@
-# TODO(A): replace with SRTM horizon masks + USFS canopy + skyfield passes
-"""Fake sky-openness coverage along the trail, built from per-point canopy and ridge data."""
+# TODO(A): replace hand-estimated canopy with USFS Tree Canopy Cover
+"""Coverage along the trail: terrain horizons + canopy for every point, real satellite
+pass windows at each check-in when a trip date is given."""
 import re
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
-from data import SERVICES
+from orbits import LEO, pass_windows, tle_age_days
+from route import haversine_m
 
 GREEN_MIN = 0.6
 YELLOW_MIN = 0.3
-CHECKIN_NAMES = ["Forest junction", "Ridge viewpoint", "Boulder field"]
-START_MINUTES = 9 * 60  # 9:00am
-CHECKIN_GAP_MINUTES = 90
+TZ = ZoneInfo("America/Los_Angeles")
+WALK_KMH = 4.0          # hiking pace on flat ground (Naismith-style, with breaks)
+CLIMB_M_PER_H = 600     # plus one hour per 600 m of climbing
+WINDOW_BEFORE_MIN = 30  # satellite windows shown around each expected check-in time
+WINDOW_AFTER_MIN = 60
+MAX_TLE_AGE_DAYS = 7    # older orbit data drifts too much to trust exact minutes
+GEO_ANYTIME = "Any time (fixed satellite)"
+START_MINUTES = 9 * 60  # 9:00am default
 
 
-def _fmt(minutes):
-    minutes = int(minutes) % (24 * 60)
-    h, m = divmod(minutes, 60)
-    suffix = "am" if h < 12 else "pm"
-    return f"{(h - 1) % 12 + 1}:{m:02d}{suffix}"
+def _fmt(dt):
+    return dt.strftime("%I:%M%p").lstrip("0").lower()
 
 
-def _parse_start_minutes(start_time, default=START_MINUTES):
-    """Accept '9:00am', '09:00', or '9:00 AM'. Falls back to default on bad input."""
-    if not start_time:
+def parse_start_time(start_time, default=START_MINUTES):
+    """Minutes since midnight from '9:00am', '9:00 AM', '09:00', '14:30', '9am'. Bad input -> default."""
+    if start_time is None or start_time == "":
         return default
+    if isinstance(start_time, int):
+        return start_time
     text = str(start_time).strip().lower().replace(" ", "")
-    match = re.fullmatch(r"(\d{1,2}):(\d{2})(am|pm)?", text)
-    if not match:
+    m = re.fullmatch(r"(\d{1,2})(?::(\d{2}))?([ap])m?", text)
+    if m:
+        h, mi = int(m.group(1)), int(m.group(2) or 0)
+        if 1 <= h <= 12 and mi < 60:
+            return (h % 12 + (12 if m.group(3) == "p" else 0)) * 60 + mi
         return default
-    h, m = int(match.group(1)), int(match.group(2))
-    ampm = match.group(3)
-    if ampm:
-        if not 1 <= h <= 12 or not 0 <= m <= 59:
-            return default
-        if ampm == "am":
-            h = 0 if h == 12 else h
-        else:
-            h = 12 if h == 12 else h + 12
-    elif not 0 <= h <= 23 or not 0 <= m <= 59:
-        return default
-    return h * 60 + m
+    m = re.fullmatch(r"(\d{1,2}):(\d{2})", text)  # HTML <input type=time>
+    if m and int(m.group(1)) < 24 and int(m.group(2)) < 60:
+        return int(m.group(1)) * 60 + int(m.group(2))
+    return default
+
+
+_parse_start_minutes = parse_start_time  # older name used by tests
+
+
+def start_time_for_input(start_time, default="09:00"):
+    """Normalize any start time to HH:MM for <input type=time>."""
+    h, m = divmod(parse_start_time(start_time, parse_start_time(default)), 60)
+    return f"{h:02d}:{m:02d}"
+
+
+def trip_month_label(trip_date, fallback="this trip"):
+    """Month name from an ISO date, for recommendation copy."""
+    if not trip_date:
+        return fallback
+    try:
+        return datetime.strptime(str(trip_date), "%Y-%m-%d").strftime("%B")
+    except ValueError:
+        return fallback
 
 
 def _color(openness):
@@ -48,60 +70,127 @@ def _color(openness):
     return "red"
 
 
-def _windows(color, t):
+def _openness(point, services):
+    """Best sky openness across the services, 0..1."""
+    best = 0.0
+    for s in services:
+        if s in LEO:
+            best = max(best, 1 - point["canopy"])
+        elif s == "skylo":  # geostationary: one fixed direction, low in the southern sky
+            best = max(best, 0.1 if point["south_blocked"] else 1 - point["canopy"])
+    return round(best, 2)
+
+
+def _with_defaults(points):
+    """Fill fields older or hand-made trails may lack: distance along the route, elevation, horizon."""
+    if all("dist_m" in p and "elev_m" in p and "horizon" in p for p in points):
+        return points
+    out, dist = [], 0.0
+    for i, p in enumerate(points):
+        if i:
+            dist += haversine_m((points[i - 1]["lat"], points[i - 1]["lon"]), (p["lat"], p["lon"]))
+        out.append({"dist_m": dist, "elev_m": 0, "horizon": [0.0] * 72, "canopy": 0.5, "south_blocked": False, **p})
+    return out
+
+
+def _minutes_from_start(points, idx):
+    climb = sum(max(0, b["elev_m"] - a["elev_m"]) for a, b in zip(points[:idx], points[1:idx + 1]))
+    hours = points[idx]["dist_m"] / 1000 / WALK_KMH + climb / CLIMB_M_PER_H
+    return int(round(hours * 60 / 5) * 5)
+
+
+def _fake_windows(color, eta):
     if color == "green":
-        return [f"{_fmt(t - 10)}–{_fmt(t + 5)}", f"{_fmt(t + 15)}–{_fmt(t + 30)}"]
+        return [f"{_fmt(eta - timedelta(minutes=10))}–{_fmt(eta + timedelta(minutes=5))}",
+                f"{_fmt(eta + timedelta(minutes=15))}–{_fmt(eta + timedelta(minutes=30))}"]
     if color == "yellow":
-        return [f"{_fmt(t - 5)}–{_fmt(t + 2)}"]
+        return [f"{_fmt(eta - timedelta(minutes=5))}–{_fmt(eta + timedelta(minutes=2))}"]
     return []
 
 
-def get_coverage(trail, profile, services=None, trip_date=None, start_time=None):
-    """Estimate coverage along the trail.
+def _real_windows(point, services, eta):
+    """Best service's windows around eta, as display strings."""
+    lo, hi = eta - timedelta(minutes=WINDOW_BEFORE_MIN), eta + timedelta(minutes=WINDOW_AFTER_MIN)
+    best, best_minutes = [], 0
+    for s in services:
+        if s == "skylo":
+            if not point["south_blocked"]:
+                return [GEO_ANYTIME]
+            continue
+        if s not in LEO:
+            continue
+        wins = pass_windows(point["lat"], point["lon"], point["elev_m"], point["horizon"],
+                            lo.astimezone(timezone.utc), hi.astimezone(timezone.utc), s)
+        minutes = sum((b - a).total_seconds() for a, b in wins) / 60
+        if minutes > best_minutes:
+            best_minutes = minutes
+            best = [f"{_fmt(a.astimezone(TZ))}–{_fmt(b.astimezone(TZ))}" for a, b in wins]
+    return best
 
-    Optional trip_date / start_time shift check-in clocks (Track C / A shared).
-    Fake mode ignores orbital day-of-year; Track A can use trip_date for real passes.
-    """
+
+def get_coverage(trail, profile, services=None, trip_date=None, start_time=None):
+    """trip_date: 'YYYY-MM-DD' or date; start_time: '9:00am' or '09:00'. Without a date, windows are placeholders."""
     if services is None:
         services = profile["services"]
-    all_blocked = bool(services) and all(SERVICES[s]["blocked_by_south_ridge"] for s in services)
-    start_minutes = _parse_start_minutes(start_time or trail.get("start_time"), START_MINUTES)
+    services = [s for s in services if s in LEO or s == "skylo"]
+    points = _with_defaults(trail["points"])
+    if trip_date is None:
+        trip_date = trail.get("trip_date")
+    if isinstance(trip_date, str):
+        try:
+            trip_date = date.fromisoformat(trip_date) if trip_date else None
+        except ValueError:
+            trip_date = None
+    start_minutes = parse_start_time(start_time or trail.get("start_time"))
+    start = datetime.combine(trip_date or date.today(), time(*divmod(start_minutes, 60)), TZ)
 
     segments = []
-    for p in trail["points"]:
-        if not services:
-            openness = 0.0
-        elif all_blocked and p["south_blocked"]:
-            openness = 0.1
-        else:
-            openness = round(1 - p["canopy"], 2)
+    for p in points:
+        openness = _openness(p, services)
         segments.append({"lat": p["lat"], "lon": p["lon"], "openness": openness, "color": _color(openness)})
 
-    n = len(segments)
+    spots = trail.get("checkins") or [{"name": f"Spot {i + 1}", "idx": round((len(points) - 1) * f)}
+                                      for i, f in enumerate((0.25, 0.5, 0.75))]
     checkins = []
-    for i, frac in enumerate((0.25, 0.5, 0.75)):
-        idx = int(frac * (n - 1))
+    for i, spot in enumerate(spots):
+        idx = spot["idx"]
         seg = segments[idx]
-        t = start_minutes + CHECKIN_GAP_MINUTES * (i + 1)
+        eta = start + timedelta(minutes=_minutes_from_start(points, idx))
+        if trip_date:
+            windows = _real_windows(points[idx], services, eta) if seg["color"] != "red" else []
+            covered = seg["color"] != "red" and bool(windows)
+        else:
+            windows = _fake_windows(seg["color"], eta)
+            covered = seg["color"] != "red"
         checkins.append({
             "idx": idx,
-            "name": f"Check-in {i + 1}: {CHECKIN_NAMES[i]}",
+            "name": f"Check-in {i + 1}: {spot['name']}",
             "lat": seg["lat"],
             "lon": seg["lon"],
-            "time": _fmt(t),
-            "windows": _windows(seg["color"], t),
+            "time": _fmt(eta),
+            "windows": windows,
             "color": seg["color"],
-            "covered": seg["color"] != "red",
+            "covered": covered,
         })
 
-    result = {
+    confidence, note = "medium", "terrain + estimated canopy; pick a date for satellite timing"
+    leo = [s for s in services if s in LEO]
+    if trip_date and leo:
+        age = tle_age_days(leo[0], start.astimezone(timezone.utc))
+        if abs(age) <= MAX_TLE_AGE_DAYS:
+            confidence, note = "medium-high", "terrain + live orbit data; canopy estimated"
+        else:
+            note = f"orbit data is {abs(age):.0f} days from the trip date; refresh closer to the trip"
+    elif trip_date:
+        note = "terrain + estimated canopy"
+
+    return {
         "segments": segments,
         "checkins": checkins,
-        "confidence": "medium",
-        "confidence_note": "simulated terrain + canopy (not live satellite passes)",
-        "start_time": _fmt(start_minutes),
-        "services": list(services),
+        "confidence": confidence,
+        "confidence_note": note,
+        "start_time": _fmt(start),
+        "trip_date": trip_date.isoformat() if trip_date else None,
+        "orbit_based": bool(trip_date),
+        "services": services,
     }
-    if trip_date:
-        result["trip_date"] = trip_date
-    return result

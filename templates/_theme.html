@@ -1,0 +1,50 @@
+{# Shared Starward theme: fonts, colors, header. Included in every page's <head>. #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eef2f0; --card: #fff; --ink: #18212b; --muted: #5d6874; --line: #d8ddd8;
+      --navy: #0f2a24; --accent: #1b6b5a; --accent-soft: #d7ebe4;
+      --green: #1f9d55; --green-bg: #e8f6ee; --yellow: #c49200; --yellow-bg: #fff7dd;
+      --red: #d64545; --gray: #6b7480; --gray-bg: #eef0f3;
+      --demo: #7a4b00; --demo-bg: #fff3d6; --demo-border: #e0b84a;
+      --radius: 12px; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+      --font: "DM Sans", system-ui, sans-serif;
+      --display: "Fraunces", Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, #cfe3dc 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, #d9e4f0 0%, transparent 50%),
+        var(--bg);
+      color: var(--ink); font: 15px/1.5 var(--font);
+      min-height: 100vh;
+    }
+    a { color: var(--accent); }
+
+    .top {
+      background: linear-gradient(120deg, #0f2a24 0%, #163d34 55%, #1a4a3e 100%);
+      color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .brand { font-family: var(--display); font-weight: 700; font-size: 1.45rem; letter-spacing: .01em; }
+    .brand span { color: #9fd6c4; }
+    .trip { color: #b7cfc6; font-size: .92rem; flex: 1; min-width: 180px; }
+    .demo-badge {
+      background: var(--demo-bg); color: var(--demo); border: 1px solid var(--demo-border);
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      padding: 5px 10px; border-radius: 6px; white-space: nowrap;
+    }
+
+    .demo-banner {
+      background: var(--demo-bg); color: var(--demo); border-bottom: 1px solid var(--demo-border);
+      padding: 8px 24px; font-size: .88rem; text-align: center;
+    }
+
+    .top .brand { color: #fff; text-decoration: none; }
+    .modes { display: flex; gap: 4px; margin-left: auto; background: none; padding: 0; border-radius: 0; }
+    .modes a { color: #cfe3dc; text-decoration: none; font-size: .85rem; font-weight: 600; padding: 5px 10px; border-radius: 999px; }
+    .modes a.on, .modes a:hover { background: rgba(255,255,255,.14); color: #fff; }
+    @media (max-width: 700px) { .trip { flex-basis: 100%; order: 3; } }
+  </style>

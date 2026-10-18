@@ -1,3 +1,6 @@
 flask
 folium
 python-dotenv
+pytest
+skyfield
+tzdata
