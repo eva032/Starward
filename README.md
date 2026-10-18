@@ -11,13 +11,13 @@ cd Starward
 python -m venv venv
 source venv/bin/activate        # Windows PowerShell: venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env            # optional; Demo Mode works with empty Photon keys
+cp .env.example .env            # optional; Demo Mode works with empty bridge keys
 python app.py                   # http://127.0.0.1:5000
 # If port 5000 is busy (common on macOS when AirPlay Receiver is on):
 PORT=5001 python app.py         # http://127.0.0.1:5001
 ```
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000). You'll see a **Demo Mode** badge until `PHOTON_KEY` is set (SMS is not sent until Track D wires Photon delivery).
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000). You'll see a **Demo Mode** badge until `BRIDGE_URL` is set (SMS is not sent until the Photon bridge is running).
 
 ### Environment variables
 
@@ -25,14 +25,23 @@ Open [http://127.0.0.1:5000](http://127.0.0.1:5000). You'll see a **Demo Mode** 
 |---|---|---|
 | `FLASK_SECRET_KEY` | No | Session signing (a default is used if unset) |
 | `PORT` | No | Server port (default `5000`) |
-| `PHOTON_KEY` | No | Track D: real SMS. Empty = Demo Mode |
-| `BASE_URL` | No | Public URL for Photon webhooks |
+| `BRIDGE_URL` | No | Photon bridge base URL (e.g. `http://127.0.0.1:8787`). Empty = Demo Mode |
+| `BRIDGE_TOKEN` | No | Shared bearer token with `bridge/.env` |
 
 Secrets belong in `.env` only (gitignored). Never commit API keys.
 
-### Photon webhooks on localhost (Track D)
+### Photon bridge (Track D / live SMS)
 
-Incoming SMS hits `POST /webhook/photon`. Flask on `127.0.0.1` is not reachable from the internet, so Track D needs a tunnel (e.g. `ngrok http 5000`) and `BASE_URL` pointed at it. Sharing and the missed-alert preview work in Demo Mode without it.
+The `bridge/` app talks to Spectrum Cloud and exposes `POST /send`. Flask calls it for outbound texts; the bridge posts inbound texts to `POST /webhook/photon`. No ngrok needed on localhost.
+
+```bash
+cd bridge
+cp .env.example .env   # set PROJECT_ID, PROJECT_SECRET, BRIDGE_TOKEN
+npm install
+npm run start          # http://127.0.0.1:8787
+```
+
+In the repo-root `.env`, set the same `BRIDGE_TOKEN` and `BRIDGE_URL=http://127.0.0.1:8787`. Recipients must be Spectrum users on your Photon project (`photon spectrum users add --phone +1…`).
 
 ## Demo script (about 2 minutes)
 
@@ -53,7 +62,7 @@ Incoming SMS hits `POST /webhook/photon`. Flask on `127.0.0.1` is not reachable 
 - **Coverage** (`coverage.py`): sky openness from canopy and terrain; check-in times from a hiking-pace estimate; windows from orbits when a trip date is given.
 - **Catalog and recommendation** (`data/*.json`, `recommend.py`): Track B's carrier catalog, situation inference from phone + carrier, per-phone and household recommendations, as of the catalog date.
 - **Phones list and official sources** (`data/phones.json`, `data/compatibility.json`, `data/compat.py`): Track C's phone picker and source citations.
-- **Guardian** (`guardian.py`): in-memory plans, printed to the console. Real Photon is Track D.
+- **Guardian** (`guardian.py` + `bridge/`): in-memory plans; Demo Mode prints to the console; live mode sends via the Photon bridge.
 
 ## Endpoints
 
@@ -81,6 +90,6 @@ python -m pytest -q
 | A | Geo + space | `coverage.py`, `route.py`, `terrain.py`, `orbits.py`, `tools/`, `data/trails/`, `data/tle/` |
 | B | Recommendation | `recommend.py`, `data/__init__.py`, `data/carriers.json` and other catalogs, `templates/household.html`, `pitch/` |
 | C | Web + localhost | `app.py`, `templates/index.html`, `data/phones.json`, `data/compatibility.json`, `data/compat.py` |
-| D | Photon guardian | `guardian.py` |
+| D | Photon guardian | `guardian.py`, `bridge/` |
 
 See `AGENTS.md` for contracts and product rules.
