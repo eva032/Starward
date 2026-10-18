@@ -1,42 +1,82 @@
 # TODO(D): send/receive via Photon 2.0
 """Fake guardian: shares the plan, records check-ins, and drafts missed-check-in alerts."""
 from datetime import datetime
+import os
+import re
 
 DEFAULT_HIKER = "Sam"
 
-# In-memory plans keyed by contact number. Lost on restart.
+# In-memory plans keyed by contact number (and hiker number when provided). Lost on restart.
 PLANS = {}
 _latest_contact = None
+
+
+def photon_configured():
+    """True when a Photon API key is present. Track D owns real send/receive."""
+    return bool(os.getenv("PHOTON_KEY", "").strip())
 
 
 def _now():
     return datetime.now().strftime("%I:%M%p").lstrip("0").lower()
 
 
+def _normalize_number(number):
+    if not number:
+        return ""
+    digits = re.sub(r"\D", "", str(number))
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
 def _find_plan(number):
     # Demo shortcut: one hiker at a time, so fall back to the most recent plan.
-    return PLANS.get(number) or PLANS.get(_latest_contact)
+    key = _normalize_number(number) or number
+    return PLANS.get(key) or PLANS.get(number) or PLANS.get(_latest_contact)
 
 
-def share_plan(contact_number, trail, coverage, hiker=DEFAULT_HIKER):
+def share_plan(contact_number, trail, coverage, hiker=DEFAULT_HIKER, hiker_number=None):
+    """Share (or simulate sharing) a trip plan with an emergency contact.
+
+    hiker_number is optional; when set, check-ins from that number can match this plan.
+    Without PHOTON_KEY, nothing is sent — text is printed and returned for the UI.
+    """
     global _latest_contact
+    trip_date = coverage.get("trip_date")
+    start_line = f"Start: {coverage['start_time']} at the trailhead."
+    if trip_date:
+        start_line = f"Date: {trip_date}. {start_line}"
     lines = [
         f"Starward trip plan: {hiker} is hiking {trail['name']}.",
-        f"Start: {coverage['start_time']} at the trailhead.",
+        start_line,
         "Check-ins (best-chance estimates, not guaranteed):",
     ]
     for c in coverage["checkins"]:
         note = "" if c["covered"] else " (low chance of signal; a skipped text here is expected)"
         lines.append(f"- {c['name']} around {c['time']}{note}")
     lines += [
-        f"{hiker} will text OK at each spot. Satellite texts can arrive late.",
+        f"{hiker} will text OK to the Starward number at each spot. Satellite texts can arrive late.",
         "If a check-in is missed, Starward will text you. If you're worried, "
-        "contact local emergency services or search and rescue.",
+        "contact local emergency services or search and rescue. "
+        "Starward never contacts emergency services automatically.",
     ]
     text = "\n".join(lines)
-    PLANS[contact_number] = {"hiker": hiker, "trail": trail, "coverage": coverage, "next": 0, "text": text}
-    _latest_contact = contact_number
-    print(f"[guardian] would send to {contact_number}:\n{text}")
+    contact_key = _normalize_number(contact_number) or contact_number
+    plan = {
+        "hiker": hiker,
+        "hiker_number": hiker_number,
+        "contact": contact_number,
+        "trail": trail,
+        "coverage": coverage,
+        "next": 0,
+        "text": text,
+        "simulated": not photon_configured(),
+    }
+    PLANS[contact_key] = plan
+    if hiker_number:
+        hiker_key = _normalize_number(hiker_number) or hiker_number
+        PLANS[hiker_key] = plan
+    _latest_contact = contact_key
+    mode = "would send" if photon_configured() else "FAKE (not sent)"
+    print(f"[guardian] {mode} to {contact_number}:\n{text}")
     return text
 
 

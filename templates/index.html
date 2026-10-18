@@ -3,191 +3,699 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Starward · {{ trail.name }}</title>
+  <title>Starward{% if show_plan %} · {{ trail.name }}{% endif %}</title>
+  {% include "_theme.html" %}
   <style>
-    :root {
-      --bg: #f4f5f7; --card: #fff; --ink: #18212b; --muted: #5d6874; --line: #e3e6ea;
-      --navy: #142038; --accent: #3b5bdb;
-      --green: #1f9d55; --green-bg: #e8f6ee; --yellow: #e0a800; --yellow-bg: #fff7dd;
-      --red: #d64545; --gray: #6b7480; --gray-bg: #eef0f3;
-      --radius: 12px; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    a { color: var(--accent); }
+    :root { --radius: 16px; --shadow: 0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.06); }
 
-    .top { background: var(--navy); color: #fff; padding: 14px 24px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-    .brand { font-weight: 800; font-size: 1.2rem; letter-spacing: .2px; }
-    .brand span { color: #ffd166; }
-    .trip { color: #b9c3d6; font-size: .92rem; }
-
-    .grid { max-width: 1240px; margin: 0 auto; padding: 20px 24px 40px; display: grid; gap: 20px;
-            grid-template-columns: minmax(340px, 420px) 1fr;
-            grid-template-areas: "setup map" "checkins map" "share map"; grid-template-rows: auto auto 1fr; }
-    .setup { grid-area: setup; } .checkins { grid-area: checkins; } .share { grid-area: share; }
-    .mapcol { grid-area: map; position: sticky; top: 20px; align-self: start; }
-    @media (max-width: 900px) {
-      .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "setup" "map" "checkins" "share"; padding: 16px; }
-      .mapcol { position: static; }
+    /* ---------- layout ---------- */
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 24px 56px; }
+    .landing { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); gap: 40px; align-items: start; }
+    .plan { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 24px; align-items: start; }
+    .stack { display: grid; gap: 18px; }
+    .mapcol { position: sticky; top: 18px; }
+    @media (max-width: 960px) {
+      .landing, .plan { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+      .wrap { padding: 18px 16px 40px; }
+      .mapcol { position: static; order: -1; }
     }
 
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
-    .eyebrow { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
-    select, input[type=tel] { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid #cfd5dc; border-radius: 8px; background: #fff; color: var(--ink); }
-    .meta { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+    /* ---------- landing hero ---------- */
+    .hero { padding-top: 24px; }
+    .hero .kicker { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+                    color: var(--accent); background: var(--accent-soft); padding: 5px 10px; border-radius: 999px; }
+    .hero h1 { font-family: var(--display); font-size: clamp(2rem, 4vw, 3.1rem); line-height: 1.08; margin: 16px 0 14px; letter-spacing: -.01em; }
+    .hero p.lead { font-size: 1.08rem; color: #3b4652; max-width: 34ch; margin: 0 0 22px; }
+    .points { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; max-width: 46ch; }
+    .points li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; }
+    .points .ic { width: 34px; height: 34px; border-radius: 10px; background: #fff; box-shadow: var(--shadow);
+                  display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .points b { display: block; font-size: .98rem; }
+    .points span.t { color: var(--muted); font-size: .9rem; }
 
-    .rec { margin-top: 16px; border-radius: 10px; padding: 16px; border-left: 4px solid; }
-    .rec.covered { background: var(--green-bg); border-color: var(--green); }
-    .rec.add_service { background: var(--yellow-bg); border-color: var(--yellow); }
-    .rec.not_compatible { background: var(--gray-bg); border-color: var(--gray); }
-    .pill { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; color: #fff; }
-    .covered .pill { background: var(--green); } .add_service .pill { background: #b88a00; } .not_compatible .pill { background: var(--gray); }
-    .headline { font-size: 1.15rem; font-weight: 700; margin: 8px 0 12px; line-height: 1.3; }
-    .opt { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-    .opt-action { font-weight: 600; }
+    /* ---------- cards ---------- */
+    .card { background: var(--card); border: 1px solid rgba(24,33,43,.08); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; }
+    .eyebrow { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; }
+    h2.title { font-family: var(--display); font-size: 1.5rem; line-height: 1.2; margin: 0 0 6px; }
+    .muted { color: var(--muted); }
+    .fine { font-size: .78rem; color: var(--muted); margin: 14px 0 0; line-height: 1.45; }
+
+    /* ---------- form ---------- */
+    fieldset { border: 0; padding: 0; margin: 0 0 18px; }
+    legend { font-weight: 700; font-size: .95rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    legend .n { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: .75rem;
+                display: inline-flex; align-items: center; justify-content: center; }
+    legend .opt { font-weight: 500; color: var(--muted); font-size: .82rem; }
+    label { display: block; font-size: .8rem; font-weight: 600; color: var(--muted); margin: 0 0 5px; }
+    .field { margin-bottom: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+    select, input[type=tel], input[type=text], input[type=search], input[type=date], input[type=time] {
+      width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #d3dad6; border-radius: 10px; background: #fff; color: var(--ink);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,107,90,.15); }
+    .hint { font-size: .8rem; color: var(--muted); margin: 5px 0 0; }
+    .activation label.choice { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; color: var(--ink); margin: 4px 14px 0 0; }
+    .errors { background: #fdecea; border: 1px solid #f5c2c0; color: #8a1f1b; padding: 10px 14px; border-radius: 10px; margin: 0 0 16px; font-size: .88rem; }
+    .errors ul { margin: 0; padding-left: 1.1rem; }
+
+    .companion { display: grid; grid-template-columns: 1.1fr 1.4fr 1fr 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    @media (max-width: 520px) { .companion { grid-template-columns: 1fr 1fr; } .companion .rm { justify-self: end; } }
+    .companion select, .companion input { padding: 9px 10px; font-size: .9rem; }
+    .rm { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #d3dad6; background: #fff; color: var(--muted);
+          cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; }
+    .rm:hover { color: var(--red); border-color: var(--red); }
+    .add-person { background: none; border: 1px dashed #b9c6c0; color: var(--accent); width: 100%; padding: 10px; border-radius: 10px;
+                  font-weight: 600; cursor: pointer; }
+    .add-person:hover { background: var(--accent-soft); }
+
+    button, .btn { font: inherit; font-weight: 600; padding: 11px 18px; border-radius: 10px; border: 0; background: var(--navy); color: #fff;
+                   cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-block; }
+    button.primary { width: 100%; background: var(--accent); font-size: 1rem; padding: 13px 18px; }
+    button.primary:hover { filter: brightness(1.07); }
+    button.link { background: none; color: var(--accent); padding: 0; font-weight: 600; font-size: .9rem; }
+
+    /* phone picker (search + list) */
+    .phone-picker { position: relative; }
+    .phone-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; max-height: 340px; overflow-y: auto;
+                  margin: 0; padding: 4px 0; list-style: none; background: #fff; border: 1px solid #d3dad6; border-radius: 10px; box-shadow: var(--shadow); }
+    .phone-list[hidden] { display: none; }
+    .phone-list .phone-group { position: sticky; top: 0; padding: 8px 12px 4px; font-size: .7rem; font-weight: 700; letter-spacing: .05em;
+                               text-transform: uppercase; color: var(--muted); background: #fff; }
+    .phone-list button { display: block; width: 100%; text-align: left; background: none; color: var(--ink); border-radius: 0;
+                         font-weight: 500; padding: 9px 12px; white-space: normal; }
+    .phone-list button:hover, .phone-list button[aria-selected="true"] { background: var(--accent-soft); }
+    .phone-list .empty { padding: 10px 12px; color: var(--muted); font-size: .88rem; }
+
+    /* ---------- trip summary ---------- */
+    .summary h2.title { font-size: 1.65rem; }
+    .facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+    .fact { font-size: .82rem; font-weight: 600; background: #f1f5f3; border: 1px solid #e1e8e4; padding: 4px 10px; border-radius: 999px; color: #2c3a35; }
+    details.edit { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+    details.edit > summary { cursor: pointer; font-weight: 600; color: var(--accent); list-style: none; }
+    details.edit > summary::-webkit-details-marker { display: none; }
+    details.edit > summary::before { content: "✎ "; }
+    details.edit[open] > summary { margin-bottom: 14px; }
+    .phone-note { margin-top: 14px; font-size: .86rem; color: #36443f; background: #f5f8f6; border-radius: 10px; padding: 10px 12px; }
+    .phone-note details { margin-top: 4px; }
+    .phone-note summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: .82rem; }
+    .phone-note ul { margin: 6px 0 0; padding-left: 1.1rem; }
+
+    /* ---------- recommendation ---------- */
+    .rec { border-top: 5px solid var(--gray); }
+    .rec.covered { border-top-color: var(--green); }
+    .rec.add_service { border-top-color: var(--yellow); }
+    .rec.cannot_add { border-top-color: #c47a2c; }
+    .pill { display: inline-block; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px; border-radius: 999px; color: #fff; background: var(--gray); }
+    .covered .pill { background: var(--green); } .add_service .pill { background: #9a7400; } .cannot_add .pill { background: #a35f16; }
+    .answer { font-family: var(--display); font-size: 1.55rem; line-height: 1.15; margin: 12px 0 4px; }
+    .subhead { margin: 0; color: #3a4552; }
+    .impact { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: .88rem; font-weight: 700; padding: 6px 10px; border-radius: 10px;
+            background: #f6f7f8; border: 1px solid rgba(24,33,43,.1); font-variant-numeric: tabular-nums; }
+    .chip.gain { border-color: #9fd6b5; background: var(--green-bg); }
+    .chip .chip-label { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .why { font-size: .92rem; color: #36404b; margin: 14px 0 0; line-height: 1.5; }
+    .why-this { margin: 14px 0 0; }
+    .why-this h3, .vs-box h3 { margin: 0 0 6px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .why-this ul { margin: 0; padding-left: 1.1rem; }
+    .why-this li { font-size: .9rem; margin: 3px 0; }
+    .vs-box { margin: 14px 0 0; padding: 12px; border-radius: 10px; background: #f7f8f9; }
+    .vs-box p { margin: 0; font-size: .86rem; color: #3a4552; }
+    .blocked-insight { margin: 14px 0 0; padding: 12px; border-radius: 10px; border: 1px dashed #c47a2c; background: #fffaf3; }
+    .blocked-insight h3 { margin: 0; font-size: .95rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .status-badge, .tag-blocked { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px;
+                                  border-radius: 999px; background: #f3e0c8; color: #6a3d0a; border: 1px solid #c47a2c; }
+    .bi-metrics { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+    .bi-reason, .caveat { margin: 8px 0 0; font-size: .85rem; color: #4a3a28; }
+    details.more { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+    details.more summary { cursor: pointer; font-weight: 600; font-size: .9rem; color: var(--muted); }
+    .alt { margin-top: 12px; }
+    .alt.blocked-alt { padding: 10px; border-radius: 10px; border: 1px dashed #c47a2c; }
+    .opt { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-weight: 600; }
     .cost { font-weight: 700; white-space: nowrap; }
-    .dots { display: inline-flex; gap: 3px; vertical-align: middle; margin-right: 6px; }
-    .dots i { width: 9px; height: 9px; border-radius: 50%; background: #cfd5dc; }
-    .dots i.on { background: var(--green); }
     .covers { font-size: .85rem; color: var(--muted); margin: 4px 0 0; }
-    .why { font-size: .9rem; color: #36404b; margin: 6px 0 0; }
-    details { margin-top: 12px; border-top: 1px solid rgba(0,0,0,.08); padding-top: 10px; }
-    summary { cursor: pointer; font-weight: 600; font-size: .9rem; color: var(--muted); }
-    details .alt { margin-top: 12px; }
-    .fine { font-size: .78rem; color: var(--muted); margin: 12px 0 0; }
 
-    .timeline { list-style: none; margin: 0; padding: 0; }
-    .timeline li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: start; }
-    .timeline li:last-child { border-bottom: 0; }
-    .num { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-weight: 700; font-size: .8rem; display: flex; align-items: center; justify-content: center; }
+    /* ---------- group ---------- */
+    .people { list-style: none; margin: 12px 0 0; padding: 0; }
+    .people li a { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 10px; margin: 0 -10px;
+                   border-radius: 12px; color: inherit; text-decoration: none; }
+    .people li a:hover { background: #f4f7f5; }
+    .people li a.on { background: var(--accent-soft); }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: #dfe9e5; color: var(--accent); font-weight: 800;
+              display: flex; align-items: center; justify-content: center; }
+    .people .who b { display: block; font-size: .95rem; }
+    .people .who span { font-size: .82rem; color: var(--muted); }
+    .dots { display: inline-flex; gap: 4px; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: #b9c4bf; }
+    .dots i.on { background: var(--green); }
+    .group-answer { margin-top: 14px; padding: 14px; border-radius: 12px; background: var(--yellow-bg); }
+    .group-answer.ok { background: var(--green-bg); }
+    .group-answer h3 { margin: 0 0 6px; font-size: 1rem; }
+    .group-answer p { margin: 6px 0 0; font-size: .88rem; color: #3a4552; }
+    .savings { margin-top: 8px; font-size: .85rem; color: var(--muted); }
+    .savings b { color: var(--ink); }
+
+    /* ---------- check-in timeline ---------- */
+    .timeline { list-style: none; margin: 8px 0 0; padding: 0; position: relative; }
+    .timeline::before { content: ""; position: absolute; left: 13px; top: 14px; bottom: 14px; width: 2px; background: #e3e9e6; }
+    .timeline li { position: relative; display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; padding: 10px 0; align-items: start; }
+    .timeline .start-row .num { background: #fff; color: var(--accent); border: 2px solid var(--accent); }
+    .num { width: 28px; height: 28px; border-radius: 50%; color: #fff; font-weight: 700; font-size: .82rem; display: flex;
+           align-items: center; justify-content: center; position: relative; z-index: 1; background: var(--gray); }
     .num.green { background: var(--green); } .num.yellow { background: var(--yellow); } .num.red { background: var(--red); }
     .ck-name { font-weight: 600; }
     .ck-win { font-size: .85rem; color: var(--muted); }
-    .ck-time { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .start { color: var(--muted); font-size: .85rem; margin: 0 0 4px; }
+    .ck-time { font-weight: 700; font-variant-numeric: tabular-nums; }
 
-    .share form { display: flex; gap: 8px; margin: 0; }
-    .share form + form { margin-top: 10px; }
-    button { font: inherit; font-weight: 600; padding: 9px 14px; border-radius: 8px; border: 0; background: var(--navy); color: #fff; cursor: pointer; white-space: nowrap; }
-    button.link { background: none; color: var(--accent); padding: 0; font-weight: 500; font-size: .88rem; }
-    .notice { background: #e8eefc; border: 1px solid #b7c6f3; padding: 10px 12px; border-radius: 8px; white-space: pre-line; font-size: .88rem; margin: 12px 0 0; }
+    /* ---------- share ---------- */
+    .shareform { display: flex; gap: 8px; margin: 12px 0 0; }
+    .notice { background: #eef3fd; border: 1px solid #c8d5f5; padding: 12px 14px; border-radius: 10px; white-space: pre-line; font-size: .86rem; margin: 14px 0 0; }
 
+    /* ---------- map ---------- */
     .mapcard { padding: 0; overflow: hidden; position: relative; }
-    .map { display: block; width: 100%; height: min(78vh, 720px); border: 0; }
-    @media (max-width: 900px) { .map { height: 420px; } }
-    .maptools { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 2; }
-    .seg { display: inline-flex; background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 999px; padding: 3px; box-shadow: var(--shadow); font-size: .82rem; }
-    .seg a { text-decoration: none; color: var(--muted); padding: 4px 11px; border-radius: 999px; font-weight: 600; }
+    .map { display: block; width: 100%; height: min(82vh, 760px); border: 0; }
+    @media (max-width: 960px) { .map { height: 440px; } }
+    .maptools { position: absolute; top: 12px; right: 12px; left: 64px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; z-index: 2; pointer-events: none; }
+    .maptools > * { pointer-events: auto; }
+    .seg { display: inline-flex; flex-wrap: wrap; background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 999px; padding: 3px; box-shadow: var(--shadow); font-size: .82rem; }
+    .seg a { text-decoration: none; color: var(--muted); padding: 5px 12px; border-radius: 999px; font-weight: 600; }
     .seg a.on { background: var(--navy); color: #fff; }
-    .seg b { font-variant-numeric: tabular-nums; }
-    .preview-note { background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: .78rem; color: var(--muted); box-shadow: var(--shadow); max-width: 260px; text-align: right; }
-    .legend { position: absolute; right: 12px; bottom: 28px; z-index: 2; background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .78rem; box-shadow: var(--shadow); }
+    .preview-note { background: rgba(255,255,255,.96); border-radius: 10px; padding: 5px 10px; font-size: .78rem; color: var(--muted); box-shadow: var(--shadow); }
+    .legend { position: absolute; right: 12px; bottom: 28px; z-index: 2; background: rgba(255,255,255,.96); border-radius: 10px;
+              padding: 9px 12px; font-size: .78rem; box-shadow: var(--shadow); }
     .legend div { display: flex; align-items: center; gap: 6px; }
     .sw { width: 16px; height: 5px; border-radius: 3px; display: inline-block; }
     .conf { color: var(--muted); margin-top: 4px; }
   </style>
 </head>
 <body>
-  <header class="top">
-    <div class="brand"><span>✦</span> Starward</div>
-    <div class="trip">{{ trail.name }} · starts {{ coverage.start_time }} · {{ coverage.checkins|length }} check-ins</div>
-  </header>
+  {% set active = "hiker" %}
+  {% if show_plan %}
+    {% set header_trip = trail.name ~ " · " ~ trip_label ~ " · starts " ~ coverage.start_time %}
+  {% else %}
+    {% set header_trip = "Plan satellite check-ins before you hike" %}
+  {% endif %}
+  {% include "_header.html" %}
 
-  <main class="grid">
-    <section class="setup card">
-      <form method="get" action="/">
-        <p class="eyebrow">Your phone &amp; carrier</p>
-        <select name="profile" onchange="this.form.submit()" aria-label="Your phone and carrier">
-          {% for pid, p in profiles.items() %}
-            <option value="{{ pid }}" {% if pid == profile_id %}selected{% endif %}>{{ p.name }}</option>
-          {% endfor %}
-        </select>
-        <noscript><button type="submit">Update</button></noscript>
-        <p class="meta">{{ profile.plan }} ·
-          {% if profile.services %}{% for s in profile.services %}{{ services[s].name }}{% endfor %}{% else %}No satellite texting{% endif %}</p>
-      </form>
-
-      {% set labels = {"covered": "You're covered", "add_service": "One add-on helps", "not_compatible": "No add-on helps"} %}
-      {% set top = rec.options[0] %}
-      <div class="rec {{ rec.outcome }}">
-        <span class="pill">{{ labels[rec.outcome] }}</span>
-        <p class="headline">{{ rec.headline }}</p>
-        <div class="opt"><span class="opt-action">{{ top.action }}</span><span class="cost">{{ top.cost }}</span></div>
-        {% if top.checkins_covered is not none %}
-          <p class="covers"><span class="dots">{% for i in range(top.total) %}<i class="{{ 'on' if i < top.checkins_covered }}"></i>{% endfor %}</span>covers {{ top.checkins_covered }} of {{ top.total }} check-ins</p>
-        {% endif %}
-        <p class="why">{{ top.reason }}</p>
-
-        {% if rec.options|length > 1 %}
-          <details>
-            <summary>Other options ({{ rec.options|length - 1 }})</summary>
-            {% for o in rec.options[1:] %}
-              <div class="alt">
-                <div class="opt"><span class="opt-action">{{ o.action }}</span><span class="cost">{{ o.cost }}</span></div>
-                {% if o.checkins_covered is not none %}
-                  <p class="covers"><span class="dots">{% for i in range(o.total) %}<i class="{{ 'on' if i < o.checkins_covered }}"></i>{% endfor %}</span>covers {{ o.checkins_covered }} of {{ o.total }}</p>
-                {% endif %}
-                <p class="why">{{ o.reason }}</p>
-              </div>
+  {# ======================= the trip form (landing + "Edit trip") ======================= #}
+  {% macro trip_form() %}
+    {% if errors %}
+      <div class="errors" role="alert"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    <form method="post" action="/plan" id="trip-form">
+      <fieldset>
+        <legend><span class="n">1</span> The hike</legend>
+        <div class="field">
+          <label for="trail_id">Trail</label>
+          <select name="trail_id" id="trail_id" required>
+            {% for tid, t in trails.items() %}
+              <option value="{{ tid }}" {% if tid == form.trail_id %}selected{% endif %}>{{ t.name }}</option>
             {% endfor %}
-          </details>
-        {% endif %}
-        <p class="fine">Prices as of {{ rec.as_of }}. Coverage is an estimate, not a guarantee.</p>
-      </div>
-    </section>
-
-    <section class="mapcol">
-      <div class="card mapcard">
-        <iframe class="map" title="Trail coverage map" srcdoc="{{ map_doc }}"></iframe>
-        {% if rec.outcome == "add_service" %}
-          <div class="maptools">
-            <nav class="seg" aria-label="Map view">
-              <a href="/?profile={{ profile_id }}" class="{{ 'on' if view == 'current' }}">Your setup <b>{{ rec.current_covered }}/{{ rec.total }}</b></a>
-              <a href="/?profile={{ profile_id }}&amp;view=tsat" class="{{ 'on' if view == 'tsat' }}">+ T-Satellite <b>{{ rec.best_covered }}/{{ rec.total }}</b></a>
-            </nav>
-            {% if view == "tsat" %}<div class="preview-note">Preview only. Your plan uses your current setup until you add it.</div>{% endif %}
-          </div>
-        {% endif %}
-        <div class="legend">
-          <div><span class="sw" style="background:var(--green)"></span>Good chance</div>
-          <div><span class="sw" style="background:var(--yellow)"></span>Some chance</div>
-          <div><span class="sw" style="background:var(--red)"></span>Unlikely</div>
-          <div class="conf">Confidence: {{ coverage.confidence }}<br>{{ coverage.confidence_note }}</div>
+          </select>
         </div>
-      </div>
-    </section>
+        <div class="row">
+          <div class="field"><label for="trip_date">Date</label>
+            <input type="date" name="trip_date" id="trip_date" value="{{ form.trip_date }}" required></div>
+          <div class="field"><label for="start_time">Start time</label>
+            <input type="time" name="start_time" id="start_time" value="{{ form.start_time }}" required></div>
+        </div>
+      </fieldset>
 
-    <section class="checkins card">
-      <p class="eyebrow">Check-in plan{% if view == "tsat" %} · with T-Satellite{% endif %}</p>
-      <p class="start">Start at the trailhead around {{ coverage.start_time }}</p>
-      <ol class="timeline">
-        {% for c in coverage.checkins %}
-          <li>
-            <span class="num {{ c.color }}">{{ loop.index }}</span>
-            <div>
-              <div class="ck-name">{{ c.name.split(': ', 1)[-1] }}</div>
-              <div class="ck-win">{% if c.windows %}Best chance {{ c.windows|join(', ') }}{% else %}Low chance of signal here{% endif %}</div>
+      <fieldset>
+        <legend><span class="n">2</span> You</legend>
+        <div class="row">
+          <div class="field"><label for="hiker_name">Your name</label>
+            <input type="text" name="hiker_name" id="hiker_name" value="{{ form.hiker_name }}" placeholder="Name on the trail" required autocomplete="name"></div>
+          <div class="field"><label for="hiker_number">Your phone number</label>
+            <input type="tel" name="hiker_number" id="hiker_number" value="{{ form.hiker_number }}" placeholder="+1 555 111 2222" required autocomplete="tel"></div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="phone_search">What phone do you have?</label>
+            <div class="phone-picker" id="phone_picker">
+              <input type="hidden" name="phone_id" id="phone_id" value="{{ form.phone_id }}" required>
+              <input type="hidden" name="manufacturer" id="manufacturer" value="{{ form.manufacturer }}">
+              <input type="search" id="phone_search" value="{{ form.phone_label }}" placeholder="e.g. Pixel 9, iPhone 15"
+                     autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false"
+                     aria-controls="phone_results" aria-autocomplete="list" aria-haspopup="listbox">
+              <ul class="phone-list" id="phone_results" role="listbox" hidden></ul>
             </div>
-            <span class="ck-time">{{ c.time }}</span>
-          </li>
-        {% endfor %}
-      </ol>
-    </section>
+          </div>
+          <div class="field">
+            <label for="carrier">Carrier</label>
+            <select name="carrier" id="carrier" required>
+              {% for c in carriers %}<option value="{{ c }}" {% if c == form.carrier %}selected{% endif %}>{{ c }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field activation" id="activation_field" {% if not ask_activation %}hidden{% endif %}>
+          <label>Do you already have <span id="activation_label_text">{{ activation_label_text }}</span> activated?</label>
+          <label class="choice"><input type="radio" name="satellite_activated" value="yes" {% if form.satellite_activated == 'yes' %}checked{% endif %}> Yes</label>
+          <label class="choice"><input type="radio" name="satellite_activated" value="no" {% if form.satellite_activated == 'no' %}checked{% endif %}> No</label>
+          <label class="choice"><input type="radio" name="satellite_activated" value="unsure" {% if form.satellite_activated == 'unsure' %}checked{% endif %}> Not sure</label>
+        </div>
+      </fieldset>
 
-    <section class="share card">
-      <p class="eyebrow">Share your plan</p>
-      <form method="post" action="/share">
-        <input type="hidden" name="profile" value="{{ profile_id }}">
-        <input type="tel" name="contact" placeholder="Emergency contact, e.g. +1 555 123 4567" aria-label="Emergency contact phone" required>
-        <button type="submit">Share</button>
-      </form>
-      <form method="post" action="/simulate/missed">
-        <input type="hidden" name="profile" value="{{ profile_id }}">
-        <button type="submit" class="link">Preview a missed check-in alert</button>
-      </form>
-      {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
-      <p class="fine">Alerts go to your contact only. Starward never contacts emergency services for you.</p>
-    </section>
+      <fieldset>
+        <legend><span class="n">3</span> Who's coming? <span class="opt">optional</span></legend>
+        <div id="companions">
+          {% for p in form.companions %}
+            <div class="companion">
+              <input type="text" name="companion_name" value="{{ p.name }}" placeholder="Name" aria-label="Name">
+              <select name="companion_phone_id" aria-label="Phone">
+                {% for maker, phones in phones_by_maker %}<optgroup label="{{ maker }}">
+                  {% for ph in phones %}<option value="{{ ph.id }}" {% if ph.id == p.phone_id %}selected{% endif %}>{{ ph.name }}</option>{% endfor %}
+                </optgroup>{% endfor %}
+              </select>
+              <select name="companion_carrier" aria-label="Carrier">
+                {% for c in carriers %}<option value="{{ c }}" {% if c == p.carrier %}selected{% endif %}>{{ c }}</option>{% endfor %}
+              </select>
+              <button type="button" class="rm" aria-label="Remove {{ p.name }}">×</button>
+            </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="add-person" id="add-person">+ Add someone</button>
+        <p class="hint">We'll check every phone and find the cheapest way to make sure someone can text at each check-in.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="n">4</span> Emergency contact</legend>
+        <div class="field">
+          <label for="contact">Who should we alert if you miss a check-in?</label>
+          <input type="tel" name="contact" id="contact" value="{{ form.contact }}" placeholder="+1 555 123 4567" autocomplete="tel">
+        </div>
+      </fieldset>
+
+      <button type="submit" class="primary">{% if show_plan %}Update trip plan{% else %}Generate trip plan{% endif %}</button>
+    </form>
+
+    <template id="companion-template">
+      <div class="companion">
+        <input type="text" name="companion_name" placeholder="Name" aria-label="Name">
+        <select name="companion_phone_id" aria-label="Phone">
+          {% for maker, phones in phones_by_maker %}<optgroup label="{{ maker }}">
+            {% for ph in phones %}<option value="{{ ph.id }}" {% if ph.id == "iphone_15" %}selected{% endif %}>{{ ph.name }}</option>{% endfor %}
+          </optgroup>{% endfor %}
+        </select>
+        <select name="companion_carrier" aria-label="Carrier">
+          {% for c in carriers %}<option value="{{ c }}" {% if c == form.carrier %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+        <button type="button" class="rm" aria-label="Remove">×</button>
+      </div>
+    </template>
+  {% endmacro %}
+
+  <main class="wrap">
+  {% if not show_plan %}
+    {# ======================= landing ======================= #}
+    <div class="landing">
+      <section class="hero">
+        <span class="kicker">Trip planning</span>
+        <h1>Know where you can text before you lose signal.</h1>
+        <p class="lead">Starward checks your trail against real terrain and satellite passes, then plans check-ins your phone can actually send.</p>
+        <ul class="points">
+          <li><span class="ic">🛰️</span><div><b>Best-chance check-in spots</b><span class="t">Times and windows for each spot, from real orbits and terrain.</span></div></li>
+          <li><span class="ic">💸</span><div><b>An honest answer on cost</b><span class="t">Often "don't buy anything." Never "buy a new phone."</span></div></li>
+          <li><span class="ic">🤝</span><div><b>Someone at home has your back</b><span class="t">Your contact gets the plan and an alert if a check-in is missed.</span></div></li>
+        </ul>
+      </section>
+      <section class="card">
+        {{ trip_form() }}
+      </section>
+    </div>
+  {% else %}
+    {# ======================= plan ======================= #}
+    <div class="plan">
+      <div class="stack">
+        <section class="card summary">
+          <p class="eyebrow">Your trip</p>
+          <h2 class="title">{{ form.hiker_name }} · {{ trail.name }}</h2>
+          <div class="facts">
+            <span class="fact">{{ trip_label }}</span>
+            <span class="fact">Starts {{ coverage.start_time }}</span>
+            <span class="fact">{{ form.phone }} · {{ form.carrier }}</span>
+            {% if group %}<span class="fact">+{{ form.companions|length }} {{ "person" if form.companions|length == 1 else "people" }}</span>{% endif %}
+          </div>
+          <div class="phone-note">
+            {% if profile.services %}Your phone can text by satellite today with {% for s in profile.services %}{{ services[s].name }}{% if not loop.last %} and {% endif %}{% endfor %}.
+            {% else %}We didn't find day-to-day satellite texting for your phone and carrier.{% endif %}
+            {% if setup.sources %}
+              <details><summary>Official sources</summary>
+                <ul>{% for s in setup.sources %}<li><a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.label }}</a> <span class="muted">· verified {{ s.verified_as_of }}</span></li>{% endfor %}</ul>
+              </details>
+            {% endif %}
+          </div>
+          <details class="edit" {% if errors %}open{% endif %}>
+            <summary>Edit trip</summary>
+            {{ trip_form() }}
+          </details>
+        </section>
+
+        {% set labels = {"covered": "You're covered (estimate)", "add_service": "Recommended add-on",
+                         "cannot_add": "Add-on blocked for now", "not_compatible": "No add-on helps"} %}
+        {% set top = rec.options[0] %}
+        <article class="card rec {{ rec.outcome }}" aria-labelledby="rec-primary">
+          <span class="pill">{{ labels.get(rec.outcome, "Recommendation") }}</span>
+          {% if group %}<p class="eyebrow" style="margin:12px 0 0">For {{ form.hiker_name }}'s phone</p>{% endif %}
+          <p id="rec-primary" class="answer">{{ top.label or top.action }}</p>
+          {% if rec.headline and rec.outcome != "covered" %}<p class="subhead">{{ rec.headline }}</p>{% endif %}
+          {% if rec.impact %}
+            <div class="impact">
+              {% for chip in rec.impact %}
+                <span class="chip {{ chip.kind }}"><span class="chip-label">{% if chip.kind == "checkins" %}Check-ins{% elif chip.kind == "gain" %}Gain{% else %}Cost{% endif %}</span> {{ chip.text }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if rec.blocked_insight %}
+            <aside class="blocked-insight">
+              <h3>{{ rec.blocked_insight.title }} <span class="status-badge">{{ rec.blocked_insight.status }}</span></h3>
+              <div class="bi-metrics">
+                <span class="chip"><span class="chip-label">If available</span> {{ rec.blocked_insight.checkins }}</span>
+                <span class="chip gain"><span class="chip-label">Gain</span> {{ rec.blocked_insight.gain }}</span>
+                <span class="chip"><span class="chip-label">Cost</span> {{ rec.blocked_insight.cost }}</span>
+              </div>
+              <p class="bi-reason">{{ rec.blocked_insight.reason }}</p>
+            </aside>
+          {% endif %}
+          <p class="why">{{ top.reason }}</p>
+          {% if rec.why_this %}
+            <section class="why-this"><h3>Why this?</h3><ul>{% for point in rec.why_this %}<li>{{ point }}</li>{% endfor %}</ul></section>
+          {% endif %}
+          {% if rec.vs_alternative and rec.outcome != "covered" %}
+            <section class="vs-box"><h3>Compared with the alternative</h3><p>{{ rec.vs_alternative }}</p></section>
+          {% endif %}
+          {% if rec.options|length > 1 and rec.outcome != "covered" %}
+            <details class="more">
+              <summary>Other options ({{ rec.options|length - 1 }})</summary>
+              {% for o in rec.options[1:] %}
+                <div class="alt {{ 'blocked-alt' if o.actionable == false }}">
+                  <div class="opt"><span>{{ o.label or o.action }}{% if o.actionable == false %} <span class="tag-blocked">Not available</span>{% endif %}</span><span class="cost">{{ o.cost }}</span></div>
+                  {% if o.checkins_covered is not none %}
+                    <p class="covers">{% if o.checkins_before is not none and o.coverage_gain and o.coverage_gain > 0 %}{{ o.checkins_before }} → {{ o.checkins_after }} check-ins (estimate){% else %}{{ o.checkins_covered }} of {{ o.total }} check-ins (estimate){% endif %}</p>
+                  {% endif %}
+                  {% if o.why %}<p class="why" style="margin-top:4px">{{ o.why }}</p>{% endif %}
+                  {% if o.caveat and o.actionable == false %}<p class="caveat">{{ o.caveat }}</p>{% endif %}
+                </div>
+              {% endfor %}
+            </details>
+          {% endif %}
+          <p class="fine">Prices as of {{ rec.as_of }}{% if rec.source_url %} · <a href="{{ rec.source_url }}" target="_blank" rel="noopener">pricing source</a>{% endif %}. Coverage is a best-chance estimate, not a guarantee. Starward never recommends buying a new phone for a trip.</p>
+        </article>
+
+        {% if group %}
+          {% set primary = (group.recommendations | selectattr("kind", "equalto", "addon") | list | first) or group.recommendations[0] %}
+          <section class="card">
+            <p class="eyebrow">Your group</p>
+            <h2 class="title" style="font-size:1.25rem">{{ group.headline }}</h2>
+            <ul class="people">
+              {% for p in group.per_line %}
+                <li><a href="/?person={{ loop.index0 }}" class="{{ 'on' if loop.index0 == person }}" title="Show {{ p.display_name }} on the map">
+                  <span class="avatar">{{ p.display_name[:1] }}</span>
+                  <span class="who"><b>{{ p.display_name }}</b><span>{{ p.phone }} · {{ p.carrier }}</span></span>
+                  <span class="dots" aria-label="{{ p.covered }} of {{ p.total }} check-ins">{% for ok in p.checkins %}<i class="{{ 'on' if ok }}"></i>{% endfor %}</span>
+                </a></li>
+              {% endfor %}
+            </ul>
+            <div class="group-answer {{ 'ok' if group.outcome == 'covered' }}">
+              <h3>{{ primary.action }} <span class="cost" style="float:right">{{ primary.cost }}</span></h3>
+              <p>{{ primary.reason }}</p>
+              {% if group.redundancy > 1 %}<p>With {{ group.per_line|length }} people, we look for at least {{ group.redundancy }} phones that can text at each check-in.</p>{% endif %}
+              <p class="savings">This plan <b>${{ group.savings.our_cost_usd }}</b> · typical upsell <b>${{ group.savings.naive_upsell_usd }}</b> · you save <b>${{ group.savings.savings_usd }}</b></p>
+            </div>
+            <p class="fine">Tap someone to see their coverage on the map. Dots are check-ins their phone can likely reach (estimate).</p>
+          </section>
+        {% endif %}
+
+        <section class="card">
+          <p class="eyebrow">Check-in plan{% if view == "tsat" %} · with T-Satellite{% endif %}{% if group and person %} · {{ map_name }}{% endif %}</p>
+          <ol class="timeline">
+            <li class="start-row"><span class="num">⌂</span><div><div class="ck-name">Trailhead</div><div class="ck-win">Start the hike</div></div><span class="ck-time">{{ coverage.start_time }}</span></li>
+            {% for c in coverage.checkins %}
+              <li>
+                <span class="num {{ c.color }}">{{ loop.index }}</span>
+                <div>
+                  <div class="ck-name">{{ c.name.split(': ', 1)[-1] }}</div>
+                  <div class="ck-win">{% if c.windows and c.windows[0].startswith("Any time") %}{{ c.windows[0] }}{% elif c.windows %}Best chance {{ c.windows|join(', ') }}{% else %}Low estimated chance here{% endif %}</div>
+                </div>
+                <span class="ck-time">{{ c.time }}</span>
+              </li>
+            {% endfor %}
+          </ol>
+          <p class="fine">On the trail, text <strong>OK</strong> to the Starward number at each spot. Times use a hiking-pace estimate; windows come from satellite orbit data and the terrain around each spot. Estimates, not guarantees.</p>
+        </section>
+
+        <section class="card">
+          <p class="eyebrow">Share your plan</p>
+          <p class="muted" style="margin:0">Your contact gets the plan now and an alert only if a check-in is missed. We never contact emergency services for you. In Demo Mode, texts are previews.</p>
+          <form class="shareform" method="post" action="/share">
+            {% for k in ["trail_id", "trip_date", "start_time", "hiker_name", "hiker_number", "manufacturer", "phone_id", "phone", "carrier", "satellite_activated"] %}
+              <input type="hidden" name="{{ k }}" value="{{ form[k] }}">
+            {% endfor %}
+            <input type="tel" name="contact" value="{{ form.contact }}" placeholder="Emergency contact phone" aria-label="Emergency contact phone" required>
+            <button type="submit">Share plan</button>
+          </form>
+          <form method="post" action="/simulate/missed" style="margin-top:12px">
+            {% for k in ["trail_id", "trip_date", "start_time", "hiker_name", "hiker_number", "manufacturer", "phone_id", "phone", "carrier", "satellite_activated", "contact"] %}
+              <input type="hidden" name="{{ k }}" value="{{ form[k] }}">
+            {% endfor %}
+            <button type="submit" class="link">Preview a missed check-in alert</button>
+          </form>
+          {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+        </section>
+      </div>
+
+      <section class="mapcol">
+        <div class="card mapcard">
+          <iframe class="map" title="Trail coverage map" srcdoc="{{ map_doc }}"></iframe>
+          <div class="maptools">
+            {% if group %}
+              <nav class="seg" aria-label="Whose coverage">
+                {% for p in group.per_line %}<a href="/?person={{ loop.index0 }}" class="{{ 'on' if loop.index0 == person }}">{{ p.display_name }}</a>{% endfor %}
+              </nav>
+            {% endif %}
+            {% if person == 0 and rec.outcome == "add_service" %}
+              <nav class="seg" aria-label="Map view">
+                <a href="/?view=current" class="{{ 'on' if view == 'current' }}">Your setup <b>{{ rec.current_covered }}/{{ rec.total }}</b></a>
+                <a href="/?view=tsat" class="{{ 'on' if view == 'tsat' }}">+ T-Satellite <b>{{ rec.best_covered }}/{{ rec.total }}</b></a>
+              </nav>
+              {% if view == "tsat" %}<div class="preview-note">Preview only. Your plan uses your current setup until you add it.</div>{% endif %}
+            {% endif %}
+          </div>
+          <div class="legend">
+            <div><span class="sw" style="background:var(--green)"></span>Good chance</div>
+            <div><span class="sw" style="background:var(--yellow)"></span>Some chance</div>
+            <div><span class="sw" style="background:var(--red)"></span>Unlikely</div>
+            <div class="conf">Confidence: {{ coverage.confidence }}<br>{{ coverage.confidence_note }}</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  {% endif %}
   </main>
+
+  <script>
+  // "Who's coming?" rows: add / remove (works in both the landing form and "Edit trip").
+  (function () {
+    const list = document.getElementById("companions");
+    const tpl = document.getElementById("companion-template");
+    const add = document.getElementById("add-person");
+    const MAX = {{ max_companions }};
+    function wire(row) {
+      row.querySelector(".rm").addEventListener("click", function () { row.remove(); add.hidden = false; });
+    }
+    list.querySelectorAll(".companion").forEach(wire);
+    add.hidden = list.children.length >= MAX;
+    add.addEventListener("click", function () {
+      const row = tpl.content.firstElementChild.cloneNode(true);
+      list.appendChild(row);
+      wire(row);
+      row.querySelector("input").focus();
+      add.hidden = list.children.length >= MAX;
+    });
+  })();
+  </script>
+  <script id="phones-data" type="application/json">{{ phones_json|safe }}</script>
+  <script id="activation-data" type="application/json">{{ activation_json|safe }}</script>
+  <script>
+  (function () {
+    const phones = JSON.parse(document.getElementById("phones-data").textContent);
+    const phoneId = document.getElementById("phone_id");
+    const manufacturer = document.getElementById("manufacturer");
+    const search = document.getElementById("phone_search");
+    const list = document.getElementById("phone_results");
+    const carrier = document.getElementById("carrier");
+    const activation = document.getElementById("activation_field");
+    const OTHER = { id: "other_phone", label: "I can't find my phone", manufacturer: "Other", name: "Other / not listed" };
+    const GROUP_ORDER = ["Apple", "Samsung", "Google", "Other"];
+
+    // {carrier: {phone_id: label}} from the server, so the page asks exactly when the server requires it.
+    const needsActivation = JSON.parse(document.getElementById("activation-data").textContent);
+    const activationLabel = document.getElementById("activation_label_text");
+
+    let active = -1;
+    let open = false;
+
+    function catalog() {
+      return phones.map(p => ({
+        id: p.id,
+        label: p.label || ((p.manufacturer && p.id !== "other_phone") ? (p.manufacturer + " " + p.name) : p.name),
+        manufacturer: p.manufacturer,
+        name: p.name
+      })).filter(p => p.id !== "other_phone").concat([OTHER]);
+    }
+
+    function orderByManufacturer(rows) {
+      const out = [];
+      GROUP_ORDER.forEach(function (g) {
+        rows.filter(function (p) { return p.manufacturer === g; }).forEach(function (p) { out.push(p); });
+      });
+      rows.filter(function (p) { return GROUP_ORDER.indexOf(p.manufacturer) === -1; })
+        .forEach(function (p) { out.push(p); });
+      return out;
+    }
+
+    function matches(q) {
+      const all = catalog().filter(function (p) { return p.id !== "other_phone"; });
+      const selected = catalog().find(function (p) { return p.id === phoneId.value; });
+      const raw = q || "";
+      const needle = raw.trim().toLowerCase();
+      // Empty field, or field still showing the selected label → browse every model.
+      const browsing = !needle || (selected && raw.trim() === selected.label);
+      let hit;
+      if (browsing) {
+        hit = all.slice();
+      } else {
+        hit = all.filter(function (p) {
+          return p.label.toLowerCase().includes(needle)
+            || (p.name || "").toLowerCase().includes(needle)
+            || (p.manufacturer || "").toLowerCase().includes(needle);
+        });
+      }
+      hit.push(OTHER);
+      return orderByManufacturer(hit);
+    }
+
+    function setExpanded(on) {
+      open = on;
+      search.setAttribute("aria-expanded", on ? "true" : "false");
+      list.hidden = !on;
+    }
+
+    function render(items) {
+      list.innerHTML = "";
+      if (!items.length) {
+        const li = document.createElement("li");
+        li.className = "empty";
+        li.textContent = "No matches. Choose “I can't find my phone”.";
+        list.appendChild(li);
+        active = -1;
+        setExpanded(true);
+        return;
+      }
+      let lastGroup = null;
+      items.forEach(function (p, i) {
+        const group = GROUP_ORDER.indexOf(p.manufacturer) !== -1 ? p.manufacturer : "Other";
+        if (group !== lastGroup) {
+          const head = document.createElement("li");
+          head.className = "phone-group";
+          head.setAttribute("role", "presentation");
+          head.textContent = group;
+          list.appendChild(head);
+          lastGroup = group;
+        }
+        const li = document.createElement("li");
+        li.setAttribute("role", "option");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.id = "phone_opt_" + i;
+        btn.textContent = p.label;
+        btn.setAttribute("aria-selected", i === active ? "true" : "false");
+        btn.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          choose(p);
+        });
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+      setExpanded(true);
+      search.setAttribute("aria-activedescendant", active >= 0 ? ("phone_opt_" + active) : "");
+      if (active >= 0) {
+        const el = document.getElementById("phone_opt_" + active);
+        if (el) el.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function choose(p) {
+      phoneId.value = p.id;
+      manufacturer.value = p.manufacturer || "Other";
+      search.value = p.label;
+      active = -1;
+      setExpanded(false);
+      toggleActivation();
+    }
+
+    function toggleActivation() {
+      const label = (needsActivation[carrier.value] || {})[phoneId.value];
+      const show = Boolean(label);
+      if (show) activationLabel.textContent = label;
+      activation.hidden = !show;
+      activation.querySelectorAll("input[type=radio]").forEach(r => {
+        r.required = show;
+        if (!show) r.checked = false;
+      });
+    }
+
+    search.addEventListener("focus", function () {
+      active = -1;
+      render(matches(search.value));
+    });
+    search.addEventListener("input", function () {
+      active = -1;
+      render(matches(search.value));
+    });
+    search.addEventListener("keydown", function (e) {
+      const items = matches(search.value);
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (!open) render(items);
+        active = Math.min(items.length - 1, active + 1);
+        render(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!open) render(items);
+        active = Math.max(0, active - 1);
+        render(items);
+      } else if (e.key === "Enter") {
+        if (open && active >= 0 && items[active]) {
+          e.preventDefault();
+          choose(items[active]);
+        }
+      } else if (e.key === "Escape") {
+        setExpanded(false);
+        active = -1;
+        search.setAttribute("aria-activedescendant", "");
+      }
+    });
+    search.addEventListener("blur", function () {
+      setTimeout(function () {
+        setExpanded(false);
+        const current = catalog().find(p => p.id === phoneId.value);
+        if (current) search.value = current.label;
+      }, 120);
+    });
+    carrier.addEventListener("change", toggleActivation);
+
+    // Ensure hidden id matches displayed label on load.
+    const initial = catalog().find(p => p.id === phoneId.value) || OTHER;
+    if (!phoneId.value) choose(OTHER);
+    else {
+      search.value = initial.label;
+      manufacturer.value = initial.manufacturer;
+    }
+    toggleActivation();
+  })();
+  </script>
 </body>
 </html>
