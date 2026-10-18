@@ -85,12 +85,14 @@
     .legend div { display: flex; align-items: center; gap: 6px; }
     .sw { width: 16px; height: 5px; border-radius: 3px; display: inline-block; }
     .conf { color: var(--muted); margin-top: 4px; }
+    .badge-fake { background: #ffd166; color: #5c3d00; font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
   </style>
 </head>
 <body>
   <header class="top">
     <div class="brand"><span>✦</span> Starward</div>
     <div class="trip">{{ trail.name }} · starts {{ coverage.start_time }} · {{ coverage.checkins|length }} check-ins</div>
+    {% if fake_mode %}<span class="badge-fake">Fake mode: texts are not really sent</span>{% endif %}
   </header>
 
   <main class="grid">

@@ -6,7 +6,7 @@ from coverage import get_coverage
 from data import PROFILES, SERVICES, TRAIL
 from guardian import handle_checkin, share_plan, simulate_missed
 from recommend import get_recommendation
-
+from guardian import handle_checkin, share_plan, simulate_missed, is_live, BRIDGE_TOKEN
 app = Flask(__name__)
 
 DEFAULT_PROFILE = "verizon_pixel"
@@ -63,6 +63,7 @@ def _render(profile_id, notice=None, view="current"):
         view=view,
         map_doc=_build_map(coverage),
         notice=notice,
+        fake_mode=not is_live(),
     )
 
 
@@ -75,9 +76,18 @@ def index():
 def share():
     profile_id = request.form.get("profile", DEFAULT_PROFILE)
     contact = request.form.get("contact", "").strip()
+    hiker_name = request.form.get("hiker_name", "").strip() or "Sam"
+    hiker_phone = request.form.get("hiker_phone", "").strip()
+    trip_date = request.form.get("trip_date", "").strip() or None
+    start_time = request.form.get("start_time", "").strip() or None
+
     profile = PROFILES.get(profile_id, PROFILES[DEFAULT_PROFILE])
-    share_plan(contact, TRAIL, get_coverage(TRAIL, profile))
-    return _render(profile_id, notice=f"Plan sent to {contact} (fake)")
+    coverage = get_coverage(TRAIL, profile, trip_date=trip_date, start_time=start_time)
+
+    share_plan(contact, TRAIL, coverage, hiker=hiker_name, hiker_number=hiker_phone)
+
+    mode = "" if is_live() else " (fake)"
+    return _render(profile_id, notice=f"Plan sent to {contact}{mode}")
 
 
 @app.post("/simulate/missed")
@@ -87,19 +97,17 @@ def missed():
     alert = simulate_missed(request.form.get("contact", ""))
     return _render(request.form.get("profile", DEFAULT_PROFILE), notice=f"Alert drafted (fake, not sent):\n{alert}")
 
-
-@app.post("/webhook/photon")
-def photon_webhook():
-    body = request.get_json(silent=True) or {}
-    print(f"[webhook] {body}")
-    reply = handle_checkin(body.get("from", ""), body.get("text", ""))
-    return {"reply": reply}, 200
-
-
 @app.get("/health")
 def health():
     return "ok"
 
+@app.post("/webhook/photon")
+def photon_webhook():
+    if BRIDGE_TOKEN and request.headers.get("authorization") != f"Bearer {BRIDGE_TOKEN}":
+        return "", 401
+    data = request.get_json(silent=True) or {}
+    handle_checkin(data.get("from", ""), data.get("text", ""))
+    return "", 200
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)

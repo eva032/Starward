@@ -1,12 +1,60 @@
-# TODO(D): send/receive via Photon 2.0
-"""Fake guardian: shares the plan, records check-ins, and drafts missed-check-in alerts."""
+"""Guardian: shares the plan, records check-ins, and sends missed-check-in alerts.
+
+Live mode texts through the Photon bridge when BRIDGE_URL is set.
+Fake mode (no BRIDGE_URL) prints instead, exactly like before.
+"""
+import os
+import re
 from datetime import datetime
+
+import requests
+
+BRIDGE_URL = os.getenv("BRIDGE_URL", "").rstrip("/")
+BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "")
 
 DEFAULT_HIKER = "Sam"
 
-# In-memory plans keyed by contact number. Lost on restart.
+# In-memory plans keyed by normalized contact number. Lost on restart.
 PLANS = {}
+# Normalized hiker number -> normalized contact number.
+HIKER_TO_CONTACT = {}
 _latest_contact = None
+
+
+def is_live():
+    """True when real texts are on. Use this for the 'Fake mode' badge."""
+    return bool(BRIDGE_URL)
+
+
+def normalize(number):
+    digits = re.sub(r"\D", "", number or "")
+    if len(digits) == 10:
+        digits = "1" + digits
+    return f"+{digits}" if digits else ""
+
+
+def send_sms(to, text):
+    """Send a text through the bridge. Prints instead when there is no bridge."""
+    to = normalize(to)
+    if not is_live():
+        print(f"[guardian] (fake) would send to {to or 'unknown'}:\n{text}")
+        return False
+    if not to:
+        print("[guardian] no recipient number, not sending")
+        return False
+    try:
+        r = requests.post(
+            f"{BRIDGE_URL}/send",
+            json={"to": to, "text": text},
+            headers={"authorization": f"Bearer {BRIDGE_TOKEN}"},
+            timeout=10,
+        )
+        if not r.ok:
+            print(f"[guardian] send to {to} failed: {r.status_code} {r.text}")
+        return r.ok
+    except requests.RequestException as e:
+        print(f"[guardian] send to {to} failed: {e}")
+        return False
 
 
 def _now():
@@ -14,12 +62,21 @@ def _now():
 
 
 def _find_plan(number):
-    # Demo shortcut: one hiker at a time, so fall back to the most recent plan.
-    return PLANS.get(number) or PLANS.get(_latest_contact)
+    n = normalize(number)
+    # Hiker number first, then contact number.
+    plan = PLANS.get(HIKER_TO_CONTACT.get(n)) or PLANS.get(n)
+    if plan:
+        return plan
+    # Demo shortcut for fake mode only: one hiker at a time, use the latest plan.
+    if not is_live():
+        return PLANS.get(_latest_contact)
+    return None
 
 
-def share_plan(contact_number, trail, coverage, hiker=DEFAULT_HIKER):
+def share_plan(contact_number, trail, coverage, hiker=DEFAULT_HIKER, hiker_number=None):
     global _latest_contact
+    contact = normalize(contact_number)
+    hiker_num = normalize(hiker_number)
     lines = [
         f"Starward trip plan: {hiker} is hiking {trail['name']}.",
         f"Start: {coverage['start_time']} at the trailhead.",
@@ -34,14 +91,23 @@ def share_plan(contact_number, trail, coverage, hiker=DEFAULT_HIKER):
         "contact local emergency services or search and rescue.",
     ]
     text = "\n".join(lines)
-    PLANS[contact_number] = {"hiker": hiker, "trail": trail, "coverage": coverage, "next": 0, "text": text}
-    _latest_contact = contact_number
-    print(f"[guardian] would send to {contact_number}:\n{text}")
+    PLANS[contact] = {
+        "hiker": hiker, "hiker_number": hiker_num, "contact": contact,
+        "trail": trail, "coverage": coverage, "next": 0, "text": text,
+    }
+    if hiker_num:
+        HIKER_TO_CONTACT[hiker_num] = contact
+    _latest_contact = contact
+
+    send_sms(contact, text)
+    if hiker_num:
+        send_sms(hiker_num, "Starward: text OK to this number at each check-in spot. "
+                            "That is all you need to do.")
     return text
 
 
 def handle_checkin(from_number, text):
-    if not text.strip().upper().startswith("OK"):
+    if not re.sub(r"[^A-Za-z]", "", text or "").upper().startswith("OK"):
         return "Reply OK to check in."
     plan = _find_plan(from_number)
     if not plan:
@@ -52,12 +118,13 @@ def handle_checkin(from_number, text):
     c = checkins[plan["next"]]
     plan["next"] += 1
     reply = f"{plan['hiker']} checked in at {c['name']}, {_now()}"
+    send_sms(plan["contact"], reply)
     print(f"[guardian] {reply} (from {from_number})")
     return reply
 
 
 def simulate_missed(contact):
-    """Draft the alert sent to the contact. Never contacts emergency services itself."""
+    """Send the alert to the contact. Never contacts emergency services itself."""
     plan = _find_plan(contact)
     if not plan:
         return "No active trip plan found. Share a plan first."
@@ -79,5 +146,5 @@ def simulate_missed(contact):
         "Satellite texts are often late, so this may not be an emergency.",
         "If you're worried, contact local emergency services or search and rescue.",
     ])
-    print(f"[guardian] missed check-in alert for {contact or 'latest contact'}:\n{text}")
+    send_sms(plan["contact"], text)
     return text
