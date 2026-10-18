@@ -12,12 +12,19 @@ python -m venv venv
 source venv/bin/activate        # Windows PowerShell: venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 cp .env.example .env            # optional; Demo Mode works with empty bridge keys
+# One-time bridge setup (for live SMS): cd bridge && cp .env.example .env && npm install
+./start.sh                      # Flask on :5001 + Photon bridge on :8787 (Ctrl+C stops both)
+```
+
+Or run services separately:
+
+```bash
 python app.py                   # http://127.0.0.1:5000
 # If port 5000 is busy (common on macOS when AirPlay Receiver is on):
 PORT=5001 python app.py         # http://127.0.0.1:5001
 ```
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000). You'll see a **Demo Mode** badge until `BRIDGE_URL` is set. In Demo Mode, **Share plan** and missed-check-in alerts are message previews only — no SMS is sent. With the Photon bridge running and `BRIDGE_URL` / `BRIDGE_TOKEN` configured, outbound texts are sent for real.
+Open [http://127.0.0.1:5001](http://127.0.0.1:5001) when using `./start.sh`, or [http://127.0.0.1:5000](http://127.0.0.1:5000) for the default `python app.py`. You'll see a **Demo Mode** badge until `BRIDGE_URL` is set. In Demo Mode, **Share plan** and missed-check-in alerts are message previews only — no SMS is sent. With the Photon bridge running and `BRIDGE_URL` / `BRIDGE_TOKEN` configured, outbound texts are sent for real.
 
 ### Environment variables
 
