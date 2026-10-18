@@ -236,8 +236,6 @@ class CompatFormFlowTests(unittest.TestCase):
         self.assertIn("find my phone", body.lower())
         self.assertIn("Google Pixel 9", body)  # in phones JSON payload labels
 
-    @unittest.expectedFailure  # Track C verdict replaced by Track B engine; see INTEGRATION_REASON
-
     def test_any_phone_carrier_generates_plan(self):
         res = self.client.post(
             "/plan",
@@ -245,11 +243,16 @@ class CompatFormFlowTests(unittest.TestCase):
                 manufacturer="Samsung",
                 phone_id="galaxy_s24",
                 carrier="AT&T",
+                satellite_activated="unsure",
             ),
         )
         self.assertEqual(res.status_code, 200)
         body = res.get_data(as_text=True)
-        self.assertIn("not verified", body.lower())
+        # No Skylo / verified ordinary SMS for this pair — plan still generates.
+        self.assertTrue(
+            "not verified" in body.lower() or "no verified ordinary satellite sms" in body.lower(),
+            body[:400],
+        )
         self.assertIn("Check-in plan", body)
         self.assertNotIn("not in the catalog", body)
 

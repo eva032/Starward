@@ -151,6 +151,52 @@ class AppFlowTests(unittest.TestCase):
         self.assertNotIn("You're covered", body)
         self.assertNotIn("$10 once", body)
 
+    def test_iphone15_att_apple_messages_not_starward_sms(self):
+        """Apple Messages via Satellite must not be presented as Starward check-in SMS."""
+        data = self._plan_form(
+            manufacturer="Apple",
+            phone_id="iphone_15",
+            phone="iPhone 15",
+            carrier="AT&T",
+            satellite_activated="unsure",
+        )
+        res = self.client.post("/plan", data=data)
+        self.assertEqual(res.status_code, 200)
+        body = res.get_data(as_text=True)
+        self.assertIn("Apple Messages via Satellite", body)
+        self.assertIn("separate from texting", body.lower())
+        self.assertIn("No verified ordinary satellite SMS", body)
+        self.assertNotIn("can text by satellite today with Apple Messages", body)
+        self.assertNotIn("You're covered", body)
+        # Must not claim ordinary SMS check-ins are already covered via Apple Messages alone.
+        self.assertNotIn("Good chance (estimate)", body)  # covered pill — no check-in SMS services
+
+    def test_pixel9_verizon_tsat_add_on_needs_confirmation(self):
+        """B may recommend T-Satellite; C must flag catalog eligibility as unverified when applicable."""
+        data = self._plan_form(trail_id="lake_serene")
+        res = self.client.post("/plan", data=data)
+        self.assertEqual(res.status_code, 200)
+        body = res.get_data(as_text=True)
+        self.assertIn("Pixel 9", body)
+        if "Add T-Satellite" in body or "add_service" in body:
+            self.assertIn("confirm", body.lower())
+            self.assertIn("eligibility", body.lower())
+
+    def test_pixel9_verizon_mount_si_supported_estimate(self):
+        """Skylo check-in path still works on a trail where the estimate can cover spots."""
+        data = self._plan_form(trail_id="mount_si")
+        res = self.client.post("/plan", data=data)
+        self.assertEqual(res.status_code, 200)
+        body = res.get_data(as_text=True)
+        self.assertIn("Check-in plan", body)
+        self.assertIn("estimate", body.lower())
+        self.assertIn("Est. good chance", body)
+        self.assertTrue("Skylo" in body or "satellite" in body.lower())
+        # Share preview still honest in Demo Mode.
+        share = self.client.post("/share", data=data)
+        self.assertEqual(share.status_code, 200)
+        self.assertIn("no SMS sent", share.get_data(as_text=True))
+
     def test_health(self):
         res = self.client.get("/health")
         self.assertEqual(res.status_code, 200)

@@ -339,8 +339,14 @@
             {% if group %}<span class="fact">+{{ form.companions|length }} {{ "person" if form.companions|length == 1 else "people" }}</span>{% endif %}
           </div>
           <div class="phone-note">
-            {% if profile.services %}Your phone can text by satellite today with {% for s in profile.services %}{{ services[s].name }}{% if not loop.last %} and {% endif %}{% endfor %}.
-            {% else %}We didn't find day-to-day satellite texting for your phone and carrier.{% endif %}
+            {% if profile.services %}
+              Estimated check-in texting may use {% for s in profile.services %}{{ services[s].name }}{% if not loop.last %} and {% endif %}{% endfor %} — not guaranteed.
+            {% else %}
+              No verified ordinary satellite SMS for Starward check-ins on this phone and carrier.
+            {% endif %}
+            {% if profile.apple_messages_satellite %}
+              Apple Messages via Satellite may still work for iMessage (and carrier-dependent SMS) — that is separate from texting Starward’s number.
+            {% endif %}
             {% if setup.sources %}
               <details><summary>Official sources</summary>
                 <ul>{% for s in setup.sources %}<li><a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.label }}</a> <span class="muted">· verified {{ s.verified_as_of }}</span></li>{% endfor %}</ul>
@@ -353,14 +359,17 @@
           </details>
         </section>
 
-        {% set labels = {"covered": "You're covered (estimate)", "add_service": "Recommended add-on",
-                         "cannot_add": "Add-on blocked for now", "not_compatible": "No add-on helps"} %}
+        {% set labels = {"covered": "Good chance (estimate)", "add_service": "Add-on may help (estimate)",
+                         "cannot_add": "Add-on blocked for now", "not_compatible": "No verified add-on"} %}
         {% set top = rec.options[0] %}
         <article class="card rec {{ rec.outcome }}" aria-labelledby="rec-primary">
           <span class="pill">{{ labels.get(rec.outcome, "Recommendation") }}</span>
           {% if group %}<p class="eyebrow" style="margin:12px 0 0">For {{ form.hiker_name }}'s phone</p>{% endif %}
           <p id="rec-primary" class="answer">{{ top.label or top.action }}</p>
           {% if rec.headline and rec.outcome != "covered" %}<p class="subhead">{{ rec.headline }}</p>{% endif %}
+          {% if rec.tsat_eligibility == "needs_confirmation" %}
+            <p class="caveat" style="margin-top:8px">T-Satellite purchase eligibility is not verified in Starward’s catalog for this line — confirm with your carrier before buying.</p>
+          {% endif %}
           {% if rec.impact %}
             <div class="impact">
               {% for chip in rec.impact %}
@@ -380,6 +389,7 @@
             </aside>
           {% endif %}
           <p class="why">{{ top.reason }}</p>
+          {% if top.caveat %}<p class="caveat">{{ top.caveat }}</p>{% endif %}
           {% if rec.why_this %}
             <section class="why-this"><h3>Why this?</h3><ul>{% for point in rec.why_this %}<li>{{ point }}</li>{% endfor %}</ul></section>
           {% endif %}
@@ -443,7 +453,7 @@
               </li>
             {% endfor %}
           </ol>
-          <p class="fine">On the trail, text <strong>OK</strong> to the Starward number at each spot. Times use a hiking-pace estimate; windows come from satellite orbit data and the terrain around each spot. Estimates, not guarantees.</p>
+          <p class="fine">On the trail, text <strong>OK</strong> to the Starward number at each spot. Times use a hiking-pace estimate; windows use orbit data and terrain when a trip date is set. Estimated opportunities — not guaranteed connectivity.</p>
         </section>
 
         <section class="card">
@@ -484,10 +494,10 @@
             {% endif %}
           </div>
           <div class="legend">
-            <div><span class="sw" style="background:var(--green)"></span>Good chance</div>
-            <div><span class="sw" style="background:var(--yellow)"></span>Some chance</div>
-            <div><span class="sw" style="background:var(--red)"></span>Unlikely</div>
-            <div class="conf">Confidence: {{ coverage.confidence }}<br>{{ coverage.confidence_note }}</div>
+            <div><span class="sw" style="background:var(--green)"></span>Est. good chance</div>
+            <div><span class="sw" style="background:var(--yellow)"></span>Est. some chance</div>
+            <div><span class="sw" style="background:var(--red)"></span>Est. unlikely</div>
+            <div class="conf">Estimate · confidence: {{ coverage.confidence }}{% if coverage.orbit_based %} · orbit-based windows{% endif %}<br>{{ coverage.confidence_note }}</div>
           </div>
         </div>
       </section>

@@ -17,7 +17,7 @@ python app.py                   # http://127.0.0.1:5000
 PORT=5001 python app.py         # http://127.0.0.1:5001
 ```
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000). You'll see a **Demo Mode** badge until `PHOTON_KEY` is set (SMS is not sent until Track D wires Photon delivery).
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000). You'll see a **Demo Mode** badge until `PHOTON_KEY` is set. **Share plan** and missed-check-in alerts are message previews only — no SMS is sent until Track D wires Photon delivery (even if a key is present in `.env`).
 
 ### Environment variables
 
@@ -40,11 +40,11 @@ Incoming SMS hits `POST /webhook/photon`. Flask on `127.0.0.1` is not reachable 
 2. Trail: **Lake Serene**. Date: tomorrow. Start: `09:00`.
 3. Hiker: your name and a fake phone (`+1 555 111 2222`).
 4. Phone: **Pixel 9**, carrier: **Verizon**. Click **Generate trip plan**.
-5. Show the map: Mount Index blocks the Pixel's satellite (Skylo sits low in the southern sky) at the Bridal Veil Falls junction. The recommendation explains why and what a $10 T-Satellite month would add.
-6. Toggle **+ T-Satellite** on the map to preview the difference.
-7. Switch to **Mount Si** or **Snow Lake**: "You're set. Don't buy anything."
+5. Show the map: Mount Index can block Skylo (low in the southern sky) at some spots. The recommendation may suggest a T-Satellite month as an estimate — confirm eligibility before buying.
+6. Toggle **+ T-Satellite** on the map to preview the difference (estimate only).
+7. Switch to **Mount Si** or **Snow Lake** for a “good chance / don’t buy” style outcome when the estimate already covers check-ins.
 8. **Share plan** shows a message preview only; **Preview a missed check-in alert** drafts the alert to the contact (never emergency services).
-9. Optional: **Whole household** (group recommendation and cart) and **T-Mobile pitch**.
+9. Optional: add people under **Who's coming?** for a group recommendation on the same page; open `/pitch/tmobile` for the T-Mobile pitch.
 
 ## What's real and what's estimated
 
@@ -63,7 +63,7 @@ Incoming SMS hits `POST /webhook/photon`. Flask on `127.0.0.1` is not reachable 
 | `POST` | `/plan` | Validate inputs and generate the plan |
 | `POST` | `/share` | Share (preview) the plan with the contact |
 | `POST` | `/simulate/missed` | Preview the missed check-in alert |
-| `GET`/`POST` | `/household` | Whole-household recommendation and cart |
+| `GET` | `/household` | Redirects to `/` (group planning is on the main form) |
 | `GET` | `/pitch/tmobile` | T-Mobile track pitch page |
 | `POST` | `/webhook/photon` | Incoming SMS (Track D / tunnel) |
 | `GET` | `/health` | Liveness + fake_mode flag |
@@ -79,7 +79,7 @@ python -m pytest -q
 | Owner | Area | Files |
 |---|---|---|
 | A | Geo + space | `coverage.py`, `route.py`, `terrain.py`, `orbits.py`, `tools/`, `data/trails/`, `data/tle/` |
-| B | Recommendation | `recommend.py`, `data/__init__.py`, `data/carriers.json` and other catalogs, `templates/household.html`, `pitch/` |
+| B | Recommendation | `recommend.py`, `data/__init__.py`, `data/carriers.json` and other catalogs, `pitch/` |
 | C | Web + localhost | `app.py`, `templates/index.html`, `data/phones.json`, `data/compatibility.json`, `data/compat.py` |
 | D | Photon guardian | `guardian.py` |
 

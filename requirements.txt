@@ -3,4 +3,6 @@ folium
 python-dotenv
 pytest
 skyfield
+sgp4
+numpy
 tzdata

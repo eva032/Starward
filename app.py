@@ -37,6 +37,7 @@ from data import (
     phone_by_id,
     resolve_phone_id,
 )
+from data.compat import tsat_addon_verified
 
 OTHER_PHONE_ID = "other_phone"
 
@@ -221,6 +222,29 @@ def _validate_trip(form: dict):
     return trip_date, errors
 
 
+def _profile_for_starward_checkins(profile: dict) -> dict:
+    """Exclude Apple Messages via Satellite from Starward check-in SMS services.
+
+    Track B's infer_services may list globalstar (iMessage/SMS via satellite on iPhone 14+).
+    That is not the same as verified ordinary SMS to Starward's number, so coverage and
+    recommendations must not treat it as check-in coverage.
+    """
+    raw = list(profile.get("services") or [])
+    out = dict(profile)
+    out["services"] = [s for s in raw if s != "globalstar"]
+    out["apple_messages_satellite"] = "globalstar" in raw
+    return out
+
+
+def _line_for_starward_checkins(line: dict) -> dict:
+    """Same globalstar exclusion for household / companion lines."""
+    raw = list(line.get("services") or [])
+    out = dict(line)
+    out["services"] = [s for s in raw if s != "globalstar"]
+    out["apple_messages_satellite"] = "globalstar" in raw
+    return out
+
+
 def _setup_for(form: dict):
     """Phone + carrier answers -> Track B situation profile, plus official source links."""
     phone_id = form.get("phone_id")
@@ -240,9 +264,10 @@ def _setup_for(form: dict):
         trip_date=form.get("trip_date") or "",
         start_time=start_time_for_input(form.get("start_time"), "09:00"),
     )
+    profile = _profile_for_starward_checkins(profile)
     return {
         "profile": profile,
-        "phone": phone_row or {"name": phone_name},
+        "phone": phone_row or {"id": phone_id, "name": phone_name},
         "ask_activation": needs_activation_question(phone_id, carrier),
         "sources": build_sources(phone_id, carrier),
         "as_of": COMPAT_AS_OF,
@@ -250,7 +275,34 @@ def _setup_for(form: dict):
 
 
 def _recommendation_for(trail, setup):
-    return get_recommendation(trail, setup["profile"])
+    """Track B recommendation, with Track C eligibility caveats when purchase isn't catalog-verified."""
+    rec = dict(get_recommendation(trail, setup["profile"]))
+    phone_id = (setup.get("phone") or {}).get("id")
+    carrier = setup["profile"].get("carrier")
+    catalog_ok = bool(phone_id and tsat_addon_verified(phone_id, carrier))
+    rec["tsat_catalog_verified"] = catalog_ok
+    if rec.get("outcome") == "add_service" and not catalog_ok:
+        # Keep B's outcome and ranking; mark purchase as needing confirmation (team: B owns final eligibility).
+        headline = (rec.get("headline") or "").rstrip(".")
+        rec["headline"] = (
+            f"{headline}. Confirm device and plan eligibility before buying — "
+            f"Starward has not independently verified T-Satellite for this line."
+        )
+        options = []
+        for i, opt in enumerate(rec.get("options") or []):
+            o = dict(opt)
+            if i == 0:
+                extra = (
+                    "Confirm T-Satellite eligibility for this phone and account "
+                    "(e.g. in T-Life) before purchasing."
+                )
+                o["caveat"] = f"{o['caveat']} {extra}".strip() if o.get("caveat") else extra
+            options.append(o)
+        rec["options"] = options
+        rec["tsat_eligibility"] = "needs_confirmation"
+    else:
+        rec["tsat_eligibility"] = "catalog_verified" if catalog_ok else "not_applicable"
+    return rec
 
 
 def _group_for(form, setup):
@@ -265,6 +317,7 @@ def _group_for(form, setup):
     for i, person in enumerate(form["companions"], 1):
         phone = (phone_by_id(person["phone_id"]) or {}).get("name") or "Other / not listed"
         lines.append(build_custom_line(i, person["name"], phone, person["carrier"], "My plan", "auto"))
+    lines = [_line_for_starward_checkins(line) for line in lines]
     return {
         "id": "trip_group", "name": "Your group", "summary": "", "custom": True,
         "trip_date": trip_date, "start_time": start, "trip_month": trip_month_label(trip_date, "this trip"),
